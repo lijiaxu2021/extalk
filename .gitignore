@@ -1,0 +1,14 @@
+# Dependency files
+node_modules/
+package-lock.json
+
+# Build files
+.wrangler/
+dist/
+
+# Configuration (contains secrets)
+wrangler.toml
+
+# OS files
+.DS_Store
+Thumbs.db
