@@ -124,12 +124,12 @@ async function syncCommentsToAdmin(env: Env, isTest: boolean = false) {
   const html = `
     <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 12px;">
       <h2 style="color: #0070f3; border-bottom: 2px solid #f4f7ff; padding-bottom: 10px;">${isTest ? '【测试】' : ''}近期评论汇总</h2>
-      <p style="color: #666; font-size: 14px;">自 ${new Date(lastSync).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} 以来的新评论：</p>
+      <p style="color: #666; font-size: 14px;">自 ${lastSync} 以来的新评论：</p>
       ${comments.map((c: any) => `
         <div style="margin-bottom: 15px; padding: 12px; background: #f9f9f9; border-radius: 8px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <b style="color: #1a1a1a;">${c.nickname}</b>
-            <span style="font-size: 12px; color: #999;">${new Date(c.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</span>
+            <span style="font-size: 12px; color: #999;">${c.created_at}</span>
           </div>
           <div style="font-size: 14px; color: #333; line-height: 1.6;">${c.content}</div>
           <div style="font-size: 11px; color: #aaa; margin-top: 8px;">页面: ${c.page_url} | IP: ${c.ip} (${c.location || '未知'})</div>
@@ -143,17 +143,19 @@ async function syncCommentsToAdmin(env: Env, isTest: boolean = false) {
 
   const res = await sendEmail(env, admin.email, `${isTest ? '【测试】' : ''}近期评论汇总 - upxuu`, html, "upxuu");
   if (res.success && !isTest) {
-    await env.DB.prepare("UPDATE users SET last_sync_at = datetime('now') WHERE role = 'admin'").run();
+    await env.DB.prepare("UPDATE users SET last_sync_at = datetime('now', '+8 hours') WHERE role = 'admin'").run();
   }
   return res;
 }
 
 export default {
-  async scheduled(event: any, env: Env, ctx: any) {
+    async scheduled(event: any, env: Env, ctx: any) {
     const admin = await env.DB.prepare("SELECT sync_interval_minutes, last_sync_at FROM users WHERE role = 'admin'").first() as any;
     if (!admin || !admin.sync_interval_minutes || admin.sync_interval_minutes <= 0) return;
 
-    const lastSyncTime = new Date(admin.last_sync_at).getTime();
+    // last_sync_at is stored as "YYYY-MM-DD HH:MM:SS" (Beijing)
+    // To compare in UTC-based worker, we need to treat it as Beijing Time
+    const lastSyncTime = new Date(admin.last_sync_at + " +0800").getTime();
     const currentTime = Date.now();
     const intervalMs = admin.sync_interval_minutes * 60 * 1000;
 
@@ -172,6 +174,22 @@ export default {
 
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    // Page View Tracking (No Auth, No Captcha)
+    if (url.pathname === "/view" && request.method === "POST") {
+      try {
+        const { page_url } = await request.json() as any;
+        if (!page_url) return new Response("Missing url", { status: 400, headers: corsHeaders });
+        
+        await env.DB.prepare("INSERT INTO page_views (page_url, views, updated_at) VALUES (?, 1, datetime('now', '+8 hours')) ON CONFLICT(page_url) DO UPDATE SET views = views + 1, updated_at = excluded.updated_at")
+          .bind(page_url)
+          .run();
+        
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      } catch (e) {
+        return new Response("Error", { status: 500, headers: corsHeaders });
+      }
     }
 
     // Serve SDK
@@ -267,6 +285,20 @@ export default {
       background: #a0cfff;
       cursor: not-allowed;
       box-shadow: none;
+    }
+    .views-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #64748b;
+      font-size: 0.85rem;
+      margin-bottom: 15px;
+      padding: 0 5px;
+    }
+    .views-info svg {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
     }
     .comment-item {
       background: white;
@@ -431,6 +463,7 @@ export default {
 
   function renderApp(container) {
     container.innerHTML = \`
+      <div id="views-counter" class="views-info"></div>
       <div class="comment-form">
         <div class="form-title">
           <span id="form-title">发表评论</span>
@@ -643,12 +676,31 @@ export default {
   async function loadComments() {
     const listContainer = document.getElementById('comments-list');
     const pageUrl = window.location.pathname;
+    
+    // Track page view
+    fetch(\`\${API_ENDPOINT}/view\`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page_url: pageUrl })
+    }).catch(() => {});
+
     try {
       const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${pageSize}\`);
       const data = await response.json();
       const allComments = data.comments;
       const total = data.total;
+      const views = data.views || 0;
       maxCommentLength = data.max_comment_length || 500;
+      
+      const viewsCounter = document.getElementById('views-counter');
+      if (viewsCounter) {
+        viewsCounter.innerHTML = \`
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+          <span>\${views} 次浏览</span>
+          <span style="margin-left: 10px; opacity: 0.5;">|</span>
+          <span style="margin-left: 10px;">\${total} 条评论</span>
+        \`;
+      }
       
       const contentInput = document.getElementById('comment-content');
       if (contentInput) contentInput.placeholder = \`写下你的想法... (最多 \${maxCommentLength} 字)\`;
@@ -668,7 +720,7 @@ export default {
         const delBtnHtml = isAdmin ? \`<span class="del-btn" onclick="window.delComment(\${c.id})">删除</span>\` : '';
         const floorHtml = level === 0 ? \`<span class="floor-tag">\${total - ((currentPage - 1) * pageSize + rootComments.indexOf(c))}F</span>\` : '';
         const locationHtml = c.location ? \`<span class="location-tag"><svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>\${escapeHtml(c.location)}</span>\` : '';
-        const timeStr = new Date(c.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+        const timeStr = c.created_at;
         
         return \`
           <div class="comment-item" style="animation-delay: 0.05s; \${level > 0 ? 'margin-top: 10px; border: none; background: #f8fafc; padding: 15px; border-radius: 12px; box-shadow: none;' : ''}">
@@ -1016,7 +1068,7 @@ export default {
                     <td style="max-width:300px">\${escapeHtml(c.content)}</td>
                     <td>\${c.ip}<br><small>\${c.location || '-'}</small></td>
                     <td class="url-cell" title="\${c.page_url}">\${c.page_url}</td>
-                    <td>\${new Date(c.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</td>
+                    <td>\${c.created_at}</td>
                     <td><button class="danger" onclick="delComment(\${c.id})">删除</button></td>
                   </tr>
                 \`).join('')}
@@ -1221,8 +1273,11 @@ export default {
       
       const admin = await env.DB.prepare("SELECT max_comment_length FROM users WHERE role = 'admin'").first() as any;
       const maxLength = admin?.max_comment_length || 500;
+      
+      const viewRes = await env.DB.prepare("SELECT views FROM page_views WHERE page_url = ?").bind(pageUrl).first() as any;
+      const views = viewRes?.views || 0;
 
-      return new Response(JSON.stringify({ comments: allComments, total, max_comment_length: maxLength }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      return new Response(JSON.stringify({ comments: allComments, total, max_comment_length: maxLength, views }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
 
     // POST /comments
@@ -1258,7 +1313,7 @@ export default {
         if (payload) userId = payload.id;
       }
 
-      await env.DB.prepare("INSERT INTO comments (page_url, nickname, content, parent_id, user_id, ip, location) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      await env.DB.prepare("INSERT INTO comments (page_url, nickname, content, parent_id, user_id, ip, location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+8 hours'))")
         .bind(page_url, nickname, content, parent_id || null, userId, ip, location)
         .run();
 

@@ -9,14 +9,14 @@ CREATE TABLE IF NOT EXISTS users (
   ip_display_level TEXT DEFAULT 'province', -- 'province' or 'city'
   max_comment_length INTEGER DEFAULT 500,
   sync_interval_minutes INTEGER DEFAULT 60, -- minutes, 0 means disabled
-  last_sync_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  last_sync_at DATETIME DEFAULT (datetime('now', '+8 hours')),
+  created_at DATETIME DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE TABLE IF NOT EXISTS allowed_domains (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   pattern TEXT UNIQUE NOT NULL, -- e.g. 'upxuu.com', '*.upxuu.com'
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE TABLE IF NOT EXISTS comments (
@@ -28,9 +28,15 @@ CREATE TABLE IF NOT EXISTS comments (
   user_id INTEGER DEFAULT NULL, -- NULL if guest
   ip TEXT,
   location TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME DEFAULT (datetime('now', '+8 hours')),
   FOREIGN KEY(parent_id) REFERENCES comments(id),
   FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_comments_page_url ON comments(page_url);
+
+CREATE TABLE IF NOT EXISTS page_views (
+  page_url TEXT PRIMARY KEY,
+  views INTEGER DEFAULT 0,
+  updated_at DATETIME DEFAULT (datetime('now', '+8 hours'))
+);
