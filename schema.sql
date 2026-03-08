@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS comments (
   user_id INTEGER DEFAULT NULL, -- NULL if guest
   ip TEXT,
   location TEXT,
+  likes INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT (datetime('now', '+8 hours')),
   FOREIGN KEY(parent_id) REFERENCES comments(id),
   FOREIGN KEY(user_id) REFERENCES users(id)
@@ -38,5 +39,6 @@ CREATE INDEX IF NOT EXISTS idx_comments_page_url ON comments(page_url);
 CREATE TABLE IF NOT EXISTS page_views (
   page_url TEXT PRIMARY KEY,
   views INTEGER DEFAULT 0,
+  likes INTEGER DEFAULT 0,
   updated_at DATETIME DEFAULT (datetime('now', '+8 hours'))
 );

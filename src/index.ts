@@ -176,16 +176,33 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Page View Tracking (No Auth, No Captcha)
+    // Page View & Like Tracking (No Auth, No Captcha)
     if (url.pathname === "/view" && request.method === "POST") {
       try {
-        const { page_url } = await request.json() as any;
+        const { page_url, type } = await request.json() as any;
         if (!page_url) return new Response("Missing url", { status: 400, headers: corsHeaders });
         
-        await env.DB.prepare("INSERT INTO page_views (page_url, views, updated_at) VALUES (?, 1, datetime('now', '+8 hours')) ON CONFLICT(page_url) DO UPDATE SET views = views + 1, updated_at = excluded.updated_at")
-          .bind(page_url)
-          .run();
+        if (type === 'like') {
+          await env.DB.prepare("INSERT INTO page_views (page_url, likes, updated_at) VALUES (?, 1, datetime('now', '+8 hours')) ON CONFLICT(page_url) DO UPDATE SET likes = likes + 1, updated_at = excluded.updated_at")
+            .bind(page_url)
+            .run();
+        } else {
+          await env.DB.prepare("INSERT INTO page_views (page_url, views, updated_at) VALUES (?, 1, datetime('now', '+8 hours')) ON CONFLICT(page_url) DO UPDATE SET views = views + 1, updated_at = excluded.updated_at")
+            .bind(page_url)
+            .run();
+        }
         
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      } catch (e) {
+        return new Response("Error", { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // Comment Like Tracking
+    if (url.pathname === "/comment/like" && request.method === "POST") {
+      try {
+        const { id } = await request.json() as any;
+        await env.DB.prepare("UPDATE comments SET likes = likes + 1 WHERE id = ?").bind(id).run();
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       } catch (e) {
         return new Response("Error", { status: 500, headers: corsHeaders });
@@ -317,16 +334,35 @@ export default {
     .views-info {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 12px;
       color: #64748b;
       font-size: 0.85rem;
       margin-bottom: 15px;
       padding: 0 5px;
     }
+    .views-info-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .views-info-item.clickable {
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .views-info-item.clickable:hover {
+      color: #e11d48;
+    }
+    .views-info-item.liked {
+      color: #e11d48;
+    }
     .views-info svg {
       width: 16px;
       height: 16px;
       opacity: 0.7;
+    }
+    .views-info-item.liked svg {
+      fill: currentColor;
+      opacity: 1;
     }
     .comment-item {
       padding: 15px 0;
@@ -367,6 +403,30 @@ export default {
       font-size: 0.9rem;
     }
     .reply-btn { color: #0070f3; cursor: pointer; font-weight: 600; }
+    .like-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #64748b;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+      font-weight: 600;
+    }
+    .like-btn:hover {
+      color: #e11d48;
+    }
+    .like-btn.liked {
+      color: #e11d48;
+    }
+    .like-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+    .like-btn.liked svg {
+      fill: currentColor;
+    }
     .del-btn { color: #ef4444; cursor: pointer; font-weight: 600; }
     .reply-target {
       background: #f1f5f9;
@@ -731,16 +791,26 @@ export default {
       const allComments = data.comments;
       const total = data.total;
       const views = data.views || 0;
+      const pageLikes = data.page_likes || 0;
       maxCommentLength = data.max_comment_length || 500;
       
       const viewsCounter = document.getElementById('views-counter');
       if (viewsCounter) {
         viewsCounter.innerHTML = \`
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-          <span>\${views} 次浏览</span>
-          <span style="margin-left: 10px; opacity: 0.5;">|</span>
-          <span style="margin-left: 10px;">\${total} 条评论</span>
+          <div class="views-info-item">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            <span>\${views} 次浏览</span>
+          </div>
+          <div class="views-info-item">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+            <span>\${total} 条评论</span>
+          </div>
+          <div id="page-like-btn" class="views-info-item clickable \${localStorage.getItem('liked_page_' + pageUrl) ? 'liked' : ''}">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+            <span id="page-likes-count">\${pageLikes}</span>
+          </div>
         \`;
+        document.getElementById('page-like-btn').onclick = () => window.likePage(pageUrl);
       }
       
       const contentInput = document.getElementById('comment-content');
@@ -762,6 +832,7 @@ export default {
         const floorHtml = level === 0 ? \`<span class="floor-tag">\${total - ((currentPage - 1) * pageSize + rootComments.indexOf(c))}F</span>\` : '';
         const locationHtml = c.location ? \`<span class="location-tag"><svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>\${escapeHtml(c.location)}</span>\` : '';
         const timeStr = c.created_at;
+        const liked = localStorage.getItem('liked_comment_' + c.id);
         
         return \`
           <div class="comment-item" style="animation-delay: 0.05s; \${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
@@ -770,8 +841,12 @@ export default {
               <span class="comment-meta">\${timeStr}</span>
             </div>
             <div class="comment-content" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.content)}</div>
-            <div class="comment-footer">
-              <a href="javascript:void(0)" class="reply-btn" onclick="window.setReply(\${c.id}, '\${escapeHtml(c.nickname)}')">回复</a>
+            <div class="comment-footer" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
+              <div class="like-btn \${liked ? 'liked' : ''}" onclick="window.likeComment(\${c.id}, this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                <span class="like-count">\${c.likes || 0}</span>
+              </div>
+              <a href="javascript:void(0)" class="reply-btn" style="font-size:0.85rem; text-decoration:none;" onclick="window.setReply(\${c.id}, '\${escapeHtml(c.nickname)}')">回复</a>
               \${delBtnHtml}
             </div>
             \${commentReplies.length > 0 ? \`
@@ -826,6 +901,41 @@ export default {
     replyingTo = null;
     document.getElementById('reply-info').innerHTML = '';
     document.getElementById('form-title').innerText = '发表评论';
+  };
+
+  window.likeComment = async (id, btn) => {
+    if (localStorage.getItem('liked_comment_' + id)) return;
+    try {
+      const res = await fetch(\`\${API_ENDPOINT}/comment/like\`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        localStorage.setItem('liked_comment_' + id, 'true');
+        btn.classList.add('liked');
+        const countSpan = btn.querySelector('.like-count');
+        countSpan.innerText = parseInt(countSpan.innerText) + 1;
+      }
+    } catch(e) {}
+  };
+
+  window.likePage = async (pageUrl) => {
+    if (localStorage.getItem('liked_page_' + pageUrl)) return;
+    try {
+      const res = await fetch(\`\${API_ENDPOINT}/view\`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page_url: pageUrl, type: 'like' })
+      });
+      if (res.ok) {
+        localStorage.setItem('liked_page_' + pageUrl, 'true');
+        const btn = document.getElementById('page-like-btn');
+        btn.classList.add('liked');
+        const countSpan = document.getElementById('page-likes-count');
+        countSpan.innerText = parseInt(countSpan.innerText) + 1;
+      }
+    } catch(e) {}
   };
 
   window.delComment = async function(id) {
@@ -1305,7 +1415,10 @@ export default {
       const allComments = allCommentsRes.results as any[];
       
       // Root comments for pagination (sorted newest first)
-      const rootCommentsAll = allComments.filter((c: any) => !c.parent_id).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const rootCommentsAll = allComments.filter((c: any) => !c.parent_id).sort((a, b) => {
+        // Since created_at is "YYYY-MM-DD HH:MM:SS", we can compare directly as strings
+        return b.created_at.localeCompare(a.created_at);
+      });
       const rootCommentsPage = rootCommentsAll.slice(offset, offset + limit);
       const rootIdsPage = rootCommentsPage.map((c: any) => c.id);
       
@@ -1319,10 +1432,11 @@ export default {
       const admin = await env.DB.prepare("SELECT max_comment_length FROM users WHERE role = 'admin'").first() as any;
       const maxLength = admin?.max_comment_length || 500;
       
-      const viewRes = await env.DB.prepare("SELECT views FROM page_views WHERE page_url = ?").bind(pageUrl).first() as any;
+      const viewRes = await env.DB.prepare("SELECT views, likes FROM page_views WHERE page_url = ?").bind(pageUrl).first() as any;
       const views = viewRes?.views || 0;
+      const pageLikes = viewRes?.likes || 0;
 
-      return new Response(JSON.stringify({ comments: allComments, total, max_comment_length: maxLength, views }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      return new Response(JSON.stringify({ comments: allComments, total, max_comment_length: maxLength, views, page_likes: pageLikes }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
 
     // POST /comments
