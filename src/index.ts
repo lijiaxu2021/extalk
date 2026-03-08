@@ -215,21 +215,49 @@ export default {
       margin: 20px auto;
     }
     .comment-form {
-      background: #f0f7ff;
-      padding: 24px;
-      border-radius: 20px;
-      border: 1px solid #cce4ff;
+      padding: 0;
       margin-bottom: 30px;
-      box-shadow: 0 10px 25px rgba(0, 112, 243, 0.05);
+      display: none; /* Collapsed by default */
+    }
+    .form-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #0070f3;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 20px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(0, 112, 243, 0.05);
+      width: fit-content;
+      transition: all 0.2s;
+    }
+    .form-toggle-btn:hover {
+      background: rgba(0, 112, 243, 0.1);
     }
     .form-title {
-      margin: 0 0 20px 0;
+      margin: 0 0 15px 0;
       color: #0070f3;
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       font-weight: 700;
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+    .close-form-btn {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      cursor: pointer;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .close-form-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #64748b;
     }
     .auth-btn {
       font-size: 0.85rem;
@@ -249,17 +277,17 @@ export default {
     }
     .comment-input {
       width: 100%;
-      padding: 14px;
-      border: 2px solid #e1efff;
-      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid rgba(0, 112, 243, 0.1);
+      border-radius: 10px;
       box-sizing: border-box;
       transition: all 0.2s;
       outline: none;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      background: rgba(0, 112, 243, 0.02);
     }
     .comment-input:focus {
       border-color: #0070f3;
-      box-shadow: 0 0 0 4px rgba(0, 112, 243, 0.1);
       background: white;
     }
     .submit-btn {
@@ -301,15 +329,12 @@ export default {
       opacity: 0.7;
     }
     .comment-item {
-      background: white;
-      padding: 20px;
-      border-radius: 18px;
-      border: 1px solid #f0f4f8;
-      margin-bottom: 20px;
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      margin-bottom: 0;
       animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       opacity: 0;
       transform: translateY(20px);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
     }
     @keyframes slideIn {
       to { opacity: 1; transform: translateY(0); }
@@ -356,10 +381,8 @@ export default {
       align-items: center;
     }
     .replies-container {
-      margin-left: 20px;
-      border-left: 3px solid #f1f5f9;
-      padding-left: 20px;
-      margin-top: 15px;
+      margin-left: 0;
+      margin-top: 5px;
     }
     .floor-tag {
       background: #e1efff;
@@ -464,9 +487,16 @@ export default {
   function renderApp(container) {
     container.innerHTML = \`
       <div id="views-counter" class="views-info"></div>
-      <div class="comment-form">
+      <div id="form-toggle" class="form-toggle-btn">
+        <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+        <span>点击发送评论</span>
+      </div>
+      <div id="comment-form-container" class="comment-form">
         <div class="form-title">
-          <span id="form-title">发表评论</span>
+          <div style="display:flex; align-items:center; gap:10px">
+            <span id="form-title">发表评论</span>
+            <span id="close-form" class="close-form-btn">收起</span>
+          </div>
           <span class="auth-btn" id="auth-status-btn">登录/注册</span>
         </div>
         <div id="reply-info"></div>
@@ -525,6 +555,17 @@ export default {
         hcaptchaWidgetId = window.hcaptcha.render('hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
         authHcaptchaWidgetId = window.hcaptcha.render('auth-hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
       }
+    };
+
+    document.getElementById('form-toggle').onclick = () => {
+      document.getElementById('comment-form-container').style.display = 'block';
+      document.getElementById('form-toggle').style.display = 'none';
+    };
+
+    document.getElementById('close-form').onclick = () => {
+      document.getElementById('comment-form-container').style.display = 'none';
+      document.getElementById('form-toggle').style.display = 'flex';
+      window.cancelReply();
     };
 
     document.getElementById('submit-comment').onclick = submitComment;
@@ -723,7 +764,7 @@ export default {
         const timeStr = c.created_at;
         
         return \`
-          <div class="comment-item" style="animation-delay: 0.05s; \${level > 0 ? 'margin-top: 10px; border: none; background: #f8fafc; padding: 15px; border-radius: 12px; box-shadow: none;' : ''}">
+          <div class="comment-item" style="animation-delay: 0.05s; \${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
             <div class="comment-header">
               <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${floorHtml}\${locationHtml}</div>
               <span class="comment-meta">\${timeStr}</span>
@@ -767,6 +808,10 @@ export default {
 
   window.setReply = function(id, nickname) {
     replyingTo = id;
+    const form = document.getElementById('comment-form-container');
+    form.style.display = 'block';
+    document.getElementById('form-toggle').style.display = 'none';
+    
     document.getElementById('form-title').innerText = '回复评论';
     document.getElementById('reply-info').innerHTML = \`
       <div class="reply-target">
