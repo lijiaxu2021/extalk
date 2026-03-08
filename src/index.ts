@@ -5,6 +5,9 @@ export interface Env {
   HCAPTCHA_SECRET_KEY: string;
   RESEND_API_KEY: string;
   JWT_SECRET: string;
+  ADMIN_EMAIL: string;
+  ADMIN_PASS: string;
+  BASE_URL: string;
 }
 
 // Utility to hash password
@@ -211,9 +214,10 @@ export default {
 
     // Serve SDK
     if (url.pathname === "/sdk.js") {
+      const baseUrl = env.BASE_URL || url.origin;
       const sdkCode = `(function() {
   const SCRIPT_URL = 'https://js.hcaptcha.com/1/api.js';
-  const API_ENDPOINT = '${url.origin}';
+  const API_ENDPOINT = '${baseUrl}';
   const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
 
   let replyingTo = null;
@@ -1392,11 +1396,13 @@ export default {
     // One-time Admin Init
     if (url.pathname === "/init-admin-999") {
        try {
-         const passHash = await hashPassword("lijiaxuupxuu2011");
+         const adminEmail = env.ADMIN_EMAIL || "lijiaxulove@outlook.com";
+         const adminPass = env.ADMIN_PASS || "lijiaxuupxuu2011";
+         const passHash = await hashPassword(adminPass);
          await env.DB.prepare("INSERT OR REPLACE INTO users (email, nickname, password_hash, role, verified, max_comment_length) VALUES (?, ?, ?, ?, ?, ?)")
-           .bind("lijiaxulove@outlook.com", "Admin", passHash, "admin", 1, 500)
+           .bind(adminEmail, "Admin", passHash, "admin", 1, 500)
            .run();
-         return new Response("Admin initialized", { headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+         return new Response("Admin initialized with ENV credentials", { headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
        } catch (e: any) {
          return new Response("Error: " + e.message, { status: 500, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
        }

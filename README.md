@@ -85,7 +85,10 @@ npx wrangler d1 execute <YOUR_DB_NAME> --remote --file=schema.sql
 ```
 
 ### 3. 配置变量
-在 Cloudflare 控制台设置：
+在 Cloudflare 控制台设置（或修改 `wrangler.toml` 中的 `[vars]`）：
+- `ADMIN_EMAIL`: 管理员初始邮箱
+- `ADMIN_PASS`: 管理员初始密码
+- `BASE_URL`: 你的 Worker 服务地址 (如 `https://comment.upxuu.com`)
 - `HCAPTCHA_SECRET_KEY`: hCaptcha 私钥
 - `RESEND_API_KEY`: Resend 邮件密钥
 - `JWT_SECRET`: 鉴权密钥
