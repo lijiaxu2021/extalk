@@ -239,6 +239,17 @@ export default {
       padding: 0;
       margin-bottom: 30px;
       display: none; /* Collapsed by default */
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      max-height: 0;
+      overflow: hidden;
+    }
+    .comment-form.expanded {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+      max-height: 500px;
     }
     .form-toggle-btn {
       display: flex;
@@ -372,12 +383,13 @@ export default {
       padding: 15px 0;
       border-bottom: 1px solid rgba(0, 0, 0, 0.05);
       margin-bottom: 0;
-      animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateX(-50px) translateY(50px);
+      transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
     }
-    @keyframes slideIn {
-      to { opacity: 1; transform: translateY(0); }
+    .comment-item.animate-in {
+      opacity: 1;
+      transform: translateX(0) translateY(0);
     }
     .comment-header {
       display: flex;
@@ -622,14 +634,26 @@ export default {
     };
 
     document.getElementById('form-toggle').onclick = () => {
-      document.getElementById('comment-form-container').style.display = 'block';
+      const form = document.getElementById('comment-form-container');
+      form.classList.add('expanded');
       document.getElementById('form-toggle').style.display = 'none';
+      
+      // 延迟触发动画
+      setTimeout(() => {
+        form.style.display = 'block';
+      }, 10);
     };
 
     document.getElementById('close-form').onclick = () => {
-      document.getElementById('comment-form-container').style.display = 'none';
-      document.getElementById('form-toggle').style.display = 'flex';
-      window.cancelReply();
+      const form = document.getElementById('comment-form-container');
+      form.classList.remove('expanded');
+      
+      // 等待动画完成后隐藏
+      setTimeout(() => {
+        form.style.display = 'none';
+        document.getElementById('form-toggle').style.display = 'flex';
+        window.cancelReply();
+      }, 400);
     };
 
     document.getElementById('submit-comment').onclick = submitComment;
@@ -782,6 +806,12 @@ export default {
     const listContainer = document.getElementById('comments-list');
     const pageUrl = window.location.pathname;
     
+    // 重置透明度，确保新评论可见
+    if (listContainer) {
+      listContainer.style.opacity = '1';
+      listContainer.style.transition = 'none';
+    }
+    
     // Track page view
     fetch(\`\${API_ENDPOINT}/view\`, {
       method: 'POST',
@@ -841,7 +871,7 @@ export default {
         const liked = localStorage.getItem('liked_comment_' + c.id);
         
         return \`
-          <div class="comment-item" style="animation-delay: 0.05s; \${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
+          <div class="comment-item" style="\${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
             <div class="comment-header">
               <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${floorHtml}\${locationHtml}</div>
               <span class="comment-meta">\${timeStr}</span>
@@ -865,6 +895,39 @@ export default {
 
       listContainer.innerHTML = rootComments.map(c => renderComment(c)).join('');
       renderPagination(total);
+      
+      // 添加滚动监听动画 - 一次只有一个评论项滑出，从上到下依次渲染
+      setTimeout(() => {
+        const commentItems = Array.from(listContainer.querySelectorAll('.comment-item'));
+        let currentIndex = 0;
+        
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && currentIndex < commentItems.length) {
+              // 只触发当前索引的评论项动画
+              const currentItem = commentItems[currentIndex];
+              if (currentItem && currentItem === entry.target) {
+                currentItem.classList.add('animate-in');
+                currentIndex++;
+                observer.unobserve(currentItem);
+                
+                // 观察下一个评论项
+                if (currentIndex < commentItems.length) {
+                  observer.observe(commentItems[currentIndex]);
+                }
+              }
+            }
+          });
+        }, {
+          threshold: 0.3,
+          rootMargin: '0px 0px -100px 0px'
+        });
+        
+        // 从第一个评论项开始观察
+        if (commentItems.length > 0) {
+          observer.observe(commentItems[0]);
+        }
+      }, 100);
     } catch (err) { console.error(err); }
   }
 
@@ -883,15 +946,40 @@ export default {
 
   window.changePage = function(page) {
     currentPage = page;
-    loadComments();
-    document.getElementById('fuwari-comments').scrollIntoView({ behavior: 'smooth' });
+    
+    // 添加分页切换过渡效果
+    const commentsContainer = document.getElementById('fuwari-comments');
+    const listContainer = document.getElementById('comments-list');
+    
+    // 先淡出现有评论
+    if (listContainer) {
+      listContainer.style.opacity = '0';
+      listContainer.style.transition = 'opacity 0.3s ease';
+    }
+    
+    setTimeout(() => {
+      loadComments();
+      
+      // 加载完成后淡入新评论
+      setTimeout(() => {
+        if (listContainer) {
+          listContainer.style.opacity = '1';
+        }
+        commentsContainer.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }, 300);
   };
 
   window.setReply = function(id, nickname) {
     replyingTo = id;
     const form = document.getElementById('comment-form-container');
-    form.style.display = 'block';
+    form.classList.add('expanded');
     document.getElementById('form-toggle').style.display = 'none';
+    
+    // 延迟触发动画
+    setTimeout(() => {
+      form.style.display = 'block';
+    }, 10);
     
     document.getElementById('form-title').innerText = '回复评论';
     document.getElementById('reply-info').innerHTML = \`
@@ -1401,8 +1489,8 @@ export default {
          const adminEmail = env.ADMIN_EMAIL || "lijiaxulove@outlook.com";
          const adminPass = env.ADMIN_PASS || "lijiaxuupxuu2011";
          const passHash = await hashPassword(adminPass);
-         await env.DB.prepare("INSERT OR REPLACE INTO users (email, nickname, password_hash, role, verified, max_comment_length) VALUES (?, ?, ?, ?, ?, ?)")
-           .bind(adminEmail, "Admin", passHash, "admin", 1, 500)
+         await env.DB.prepare("INSERT OR REPLACE INTO users (email, nickname, password_hash, role, verified, max_comment_length, sync_interval_minutes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+           .bind(adminEmail, "Admin", passHash, "admin", 1, 500, 60)
            .run();
          return new Response("Admin initialized with ENV credentials", { headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
        } catch (e: any) {
