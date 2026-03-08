@@ -833,7 +833,9 @@ export default {
       function renderComment(c, level = 0) {
         const commentReplies = replies.filter(r => r.parent_id === c.id);
         const delBtnHtml = isAdmin ? \`<span class="del-btn" onclick="window.delComment(\${c.id})">删除</span>\` : '';
-        const floorHtml = level === 0 ? \`<span class="floor-tag">\${total - ((currentPage - 1) * pageSize + rootComments.indexOf(c))}F</span>\` : '';
+        // 楼层计算：由于根评论按时间降序排列（最新的在前），楼层号需要从大到小
+        const floorNumber = total - ((currentPage - 1) * pageSize + rootComments.indexOf(c));
+        const floorHtml = level === 0 ? \`<span class="floor-tag">\${floorNumber}F</span>\` : '';
         const locationHtml = c.location ? \`<span class="location-tag"><svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>\${escapeHtml(c.location)}</span>\` : '';
         const timeStr = c.created_at;
         const liked = localStorage.getItem('liked_comment_' + c.id);
@@ -1417,23 +1419,22 @@ export default {
       const limit = parseInt(url.searchParams.get("limit") || "6");
       const offset = (page - 1) * limit;
 
-      const allCommentsRes = await env.DB.prepare("SELECT * FROM comments WHERE page_url = ? ORDER BY created_at ASC").bind(pageUrl).all();
-      const allComments = allCommentsRes.results as any[];
+      // 获取当前页面的根评论（按时间降序排列，最新的在前）
+      const rootCommentsRes = await env.DB.prepare("SELECT * FROM comments WHERE page_url = ? AND parent_id IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?").bind(pageUrl, limit, offset).all();
+      const rootCommentsPage = rootCommentsRes.results as any[];
       
-      // Root comments for pagination (sorted newest first)
-      const rootCommentsAll = allComments.filter((c: any) => !c.parent_id).sort((a, b) => {
-        // Since created_at is "YYYY-MM-DD HH:MM:SS", we can compare directly as strings
-        return b.created_at.localeCompare(a.created_at);
-      });
-      const rootCommentsPage = rootCommentsAll.slice(offset, offset + limit);
+      // 获取所有评论的总数用于分页
+      const totalRes = await env.DB.prepare("SELECT COUNT(*) as count FROM comments WHERE page_url = ? AND parent_id IS NULL").bind(pageUrl).first() as any;
+      const total = totalRes?.count || 0;
+      
+      // 获取当前页面根评论的所有回复（按时间升序排列，最早的回复在前）
       const rootIdsPage = rootCommentsPage.map((c: any) => c.id);
-      
-      // To support infinite nesting, we need to find all descendants of the root comments on this page
-      // For simplicity and since total comments per page is usually small, we'll return all comments for this page
-      // but the SDK will only render those that are part of the current page's roots or their descendants.
-      // Actually, returning ALL comments for the URL is fine if the number isn't huge.
-      
-      const total = rootCommentsAll.length;
+      let replies = [];
+      if (rootIdsPage.length > 0) {
+        const placeholders = rootIdsPage.map(() => '?').join(',');
+        const repliesRes = await env.DB.prepare(`SELECT * FROM comments WHERE page_url = ? AND parent_id IN (${placeholders}) ORDER BY created_at ASC`).bind(pageUrl, ...rootIdsPage).all();
+        replies = repliesRes.results as any[];
+      }
       
       const admin = await env.DB.prepare("SELECT max_comment_length FROM users WHERE role = 'admin'").first() as any;
       const maxLength = admin?.max_comment_length || 500;
@@ -1441,6 +1442,9 @@ export default {
       const viewRes = await env.DB.prepare("SELECT views, likes FROM page_views WHERE page_url = ?").bind(pageUrl).first() as any;
       const views = viewRes?.views || 0;
       const pageLikes = viewRes?.likes || 0;
+
+      // 合并根评论和回复，根评论已经按时间降序排列
+      const allComments = [...rootCommentsPage, ...replies];
 
       return new Response(JSON.stringify({ comments: allComments, total, max_comment_length: maxLength, views, page_likes: pageLikes }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
