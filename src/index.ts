@@ -1242,26 +1242,98 @@ export default {
       </div>
       <script>
         const API = '${url.origin}';
+        const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
         let token = localStorage.getItem('fuwari_admin_token');
         let currentTab = 'comments';
         let data = { comments: [], domains: [], users: [] };
         let filters = { comment: '' };
+        let hcaptchaWidgetId = null;
+        let isLoginMode = true;
 
         if (!token) {
-           const email = prompt('Admin Email:');
-           const password = prompt('Password:');
-           fetch(API + '/auth/login', {
-             method: 'POST',
-             body: JSON.stringify({ email, password }),
-             headers: { 'Content-Type': 'application/json' }
-           }).then(r => r.json()).then(d => {
-             if (d.token && d.role === 'admin') {
-               token = d.token;
-               localStorage.setItem('fuwari_admin_token', token);
-               init();
-             } else alert('Login Failed');
-           });
-        } else init();
+          showLoginModal();
+        } else {
+          init();
+        }
+
+        function showLoginModal() {
+          // 使用简单的prompt方式，避免复杂的HTML模板问题
+          const email = prompt('请输入管理员邮箱:');
+          const password = prompt('请输入密码:');
+          
+          if (!email || !password) {
+            alert('邮箱和密码不能为空');
+            location.reload();
+            return;
+          }
+          
+          // 提示用户需要完成hCaptcha验证
+          alert('请在页面中完成人机验证后登录');
+          
+          // 加载hCaptcha
+          const script = document.createElement('script');
+          script.src = 'https://js.hcaptcha.com/1/api.js';
+          script.async = true; script.defer = true;
+          document.head.appendChild(script);
+          
+          script.onload = () => {
+            if (window.hcaptcha) {
+              // 创建一个简单的验证容器
+              const container = document.createElement('div');
+              container.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+              
+              const box = document.createElement('div');
+              box.style.cssText = 'background: white; padding: 30px; border-radius: 10px; text-align: center;';
+              
+              const title = document.createElement('h3');
+              title.textContent = '人机验证';
+              
+              const captchaDiv = document.createElement('div');
+              captchaDiv.id = 'hcaptcha-container';
+              
+              const loginBtn = document.createElement('button');
+              loginBtn.textContent = '验证并登录';
+              loginBtn.style.cssText = 'margin-top: 20px; padding: 10px 20px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer;';
+              loginBtn.onclick = async () => {
+                const hcaptchaToken = window.hcaptcha.getResponse(hcaptchaWidgetId);
+                if (!hcaptchaToken) {
+                  alert('请先完成人机验证');
+                  return;
+                }
+                
+                try {
+                  const res = await fetch(API + '/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password, hcaptcha_token: hcaptchaToken }),
+                    headers: { 'Content-Type': 'application/json' }
+                  });
+                  const data = await res.json();
+                  
+                  if (res.ok && data.token && data.role === 'admin') {
+                    token = data.token;
+                    localStorage.setItem('fuwari_admin_token', token);
+                    location.reload();
+                  } else {
+                    alert(data.error || '登录失败');
+                    window.hcaptcha.reset(hcaptchaWidgetId);
+                  }
+                } catch (err) {
+                  alert('网络错误，请重试');
+                }
+              };
+              
+              box.appendChild(title);
+              box.appendChild(captchaDiv);
+              box.appendChild(loginBtn);
+              container.appendChild(box);
+              document.body.appendChild(container);
+              
+              hcaptchaWidgetId = window.hcaptcha.render('hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
+            }
+          };
+        }
+
+
 
         async function req(path, method='GET', body=null) {
           const res = await fetch(API + path, {
