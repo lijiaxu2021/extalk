@@ -33,6 +33,9 @@
   let hasMore = true;
   let hcaptchaWidgetId = null;
   let authHcaptchaWidgetId = null;
+  let verifyHcaptchaWidgetId = null;
+  let pendingCommentData = null; // 存储待提交的评论数据
+  let isVerified = false; // 会话级验证状态
 
   const styles = `
     #extalk-comments {
@@ -813,16 +816,108 @@
     const content = document.getElementById('comment-content').value.trim();
     const nickname = document.getElementById('comment-nickname').value.trim();
     
-    const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(hcaptchaWidgetId) : null;
-    if (!hcaptchaToken) {
-      alert('请先完成人机验证');
+    if (!content || !nickname) return alert('请填写完整');
+    
+    // 如果已验证，直接提交
+    if (isVerified) {
+      await submitCommentWithToken(window.hcaptcha.getResponse(hcaptchaWidgetId));
       return;
     }
     
-    if (!content || !nickname) return alert('请填写完整');
+    // 存储待提交的评论数据
+    pendingCommentData = {
+      page_url: window.location.pathname,
+      nickname,
+      content,
+      parent_id: replyingTo
+    };
     
+    // 显示验证弹窗
+    showVerifyModal();
+  }
+  
+  function showVerifyModal() {
+    // 创建验证弹窗
+    const modal = document.createElement('div');
+    modal.id = 'verify-modal';
+    modal.style.cssText = 'display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);';
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = 'background-color: #fefefe; margin: 15% auto; padding: 30px; border: 1px solid #888; width: 90%; max-width: 380px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;';
+    
+    const title = document.createElement('h3');
+    title.textContent = '安全验证';
+    title.style.cssText = 'margin-top: 0; color: #1a1a1a; margin-bottom: 20px;';
+    
+    const description = document.createElement('p');
+    description.textContent = '请完成人机验证以继续提交评论';
+    description.style.cssText = 'color: #64748b; margin-bottom: 20px; font-size: 0.95rem;';
+    
+    const captchaDiv = document.createElement('div');
+    captchaDiv.id = 'verify-hcaptcha-container';
+    captchaDiv.style.cssText = 'margin-bottom: 20px; display: flex; justify-content: center;';
+    
+    const submitBtn = document.createElement('button');
+    submitBtn.textContent = '提交评论';
+    submitBtn.style.cssText = 'width: 100%; padding: 12px; background: #0070f3; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;';
+    submitBtn.onmouseover = () => submitBtn.style.backgroundColor = '#0060d9';
+    submitBtn.onmouseout = () => submitBtn.style.backgroundColor = '#0070f3';
+    
+    submitBtn.onclick = async () => {
+      const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(verifyHcaptchaWidgetId) : null;
+      if (!hcaptchaToken) {
+        alert('请先完成人机验证');
+        return;
+      }
+      
+      submitBtn.disabled = true;
+      submitBtn.innerText = '提交中...';
+      
+      await submitCommentWithToken(hcaptchaToken);
+      
+      // 关闭弹窗
+      modal.style.display = 'none';
+      document.body.removeChild(modal);
+    };
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.cssText = 'width: 100%; padding: 10px; background: transparent; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 10px; transition: all 0.2s;';
+    cancelBtn.onmouseover = () => { cancelBtn.style.backgroundColor = '#f1f5f9'; cancelBtn.style.borderColor = '#cbd5e1'; };
+    cancelBtn.onmouseout = () => { cancelBtn.style.backgroundColor = 'transparent'; cancelBtn.style.borderColor = '#e2e8f0'; };
+    
+    cancelBtn.onclick = () => {
+      modal.style.display = 'none';
+      document.body.removeChild(modal);
+      pendingCommentData = null;
+    };
+    
+    modalContent.appendChild(title);
+    modalContent.appendChild(description);
+    modalContent.appendChild(captchaDiv);
+    modalContent.appendChild(submitBtn);
+    modalContent.appendChild(cancelBtn);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // 显示弹窗
+    modal.style.display = 'block';
+    
+    // 加载 hCaptcha
+    if (!verifyHcaptchaWidgetId && window.hcaptcha) {
+      verifyHcaptchaWidgetId = window.hcaptcha.render('verify-hcaptcha-container', { 
+        sitekey: HCAPTCHA_SITE_KEY,
+        theme: 'light'
+      });
+    }
+  }
+  
+  async function submitCommentWithToken(hcaptchaToken) {
     const submitBtn = document.getElementById('submit-comment');
-    submitBtn.disabled = true; submitBtn.innerText = '提交中...';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = '提交中...';
+    }
     
     try {
       const res = await fetch(`${API_ENDPOINT}/comments`, {
@@ -832,11 +927,15 @@
           'Authorization': currentUser ? `Bearer ${currentUser.token}` : ''
         },
         body: JSON.stringify({
-          page_url: window.location.pathname,
-          nickname, content, hcaptcha_token: hcaptchaToken, parent_id: replyingTo
+          page_url: pendingCommentData.page_url,
+          nickname: pendingCommentData.nickname,
+          content: pendingCommentData.content,
+          hcaptcha_token: hcaptchaToken,
+          parent_id: pendingCommentData.parent_id
         })
       });
       if (res.ok) {
+        // 清空表单
         document.getElementById('comment-content').value = '';
         cancelReply();
         if (window.hcaptcha) window.hcaptcha.reset(hcaptchaWidgetId);
@@ -845,11 +944,20 @@
         currentPage = 1;
         loadComments();
         
+        // 标记为已验证（会话级）
+        isVerified = true;
+        
         // 提示成功
         alert('评论成功！');
       } else { alert(await res.text()); }
     } catch (err) { alert('提交失败'); }
-    finally { submitBtn.disabled = false; submitBtn.innerText = '提交评论'; }
+    finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = '提交评论';
+      }
+      pendingCommentData = null;
+    }
   }
 
   // 加载更多按钮点击事件
