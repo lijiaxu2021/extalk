@@ -1,14 +1,29 @@
 (function() {
-  const HCAPTCHA_SCRIPT_URL = 'https://js.hcaptcha.com/1/api.js';
   const API_ENDPOINT = 'https://comment.upxuu.com';
-  const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
-
+  
   // 配置参数 - 从 URL 参数获取，如果没有则使用默认值
   const urlParams = new URLSearchParams(window.location.search);
   let config = {
-    loadMode: urlParams.get('loadMode') || 'infinite', // 'infinite' (无限滚动) | 'button' (加载更多) | 'pagination' (分页模式)
+    loadMode: urlParams.get('loadMode') || 'infinite',
     pageSize: parseInt(urlParams.get('pageSize') || '6')
   };
+  
+  // hCaptcha sitekey 将从后端 API 动态获取
+  let HCAPTCHA_SITE_KEY = null;
+  
+  // 获取 hCaptcha sitekey
+  async function getHcaptchaSiteKey() {
+    try {
+      const res = await fetch(`${API_ENDPOINT}/config`);
+      const data = await res.json();
+      HCAPTCHA_SITE_KEY = data.hcaptcha_site_key || '09063bfe-9ca4-46d6-ae94-b7486344b53a';
+      return HCAPTCHA_SITE_KEY;
+    } catch (err) {
+      console.error('Failed to get hCaptcha site key:', err);
+      HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a'; // Fallback
+      return HCAPTCHA_SITE_KEY;
+    }
+  }
 
   let replyingTo = null;
   let currentUser = JSON.parse(localStorage.getItem('extalk_user') || 'null');
@@ -374,7 +389,10 @@
     }
   `;
 
-  function init() {
+  async function init() {
+    // 先获取 hCaptcha sitekey
+    await getHcaptchaSiteKey();
+    
     const container = document.getElementById('extalk-comments');
     if (!container) return;
 
@@ -432,7 +450,7 @@
 
     // 加载 hCaptcha
     const script = document.createElement('script');
-    script.src = HCAPTCHA_SCRIPT_URL;
+    script.src = 'https://js.hcaptcha.com/1/api.js';
     script.async = true; script.defer = true;
     document.head.appendChild(script);
 

@@ -175,20 +175,22 @@ export default {
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
 
-    // Serve static files from public directory
+    // Serve static files from assets
     if (request.method === "GET" && url.pathname === "/") {
-      try {
-        const html = await env.__STATIC_CONTENT.get("index.html");
-        if (html) {
-          return new Response(html, {
-            headers: {
-              "Content-Type": "text/html; charset=utf-8",
-            },
-          });
-        }
-      } catch (e) {
-        // If static content binding is not available, continue to default behavior
-      }
+      return new Response(env.ASSETS.get("index.html"), {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+        },
+      });
+    }
+    
+    // Config API - provide hCaptcha site key to SDK
+    if (request.method === "GET" && url.pathname === "/config") {
+      return new Response(JSON.stringify({
+        hcaptcha_site_key: env.HCAPTCHA_SITE_KEY || "09063bfe-9ca4-46d6-ae94-b7486344b53a"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" }
+      });
     }
 
     if (request.method === "OPTIONS") {
