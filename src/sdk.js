@@ -1,41 +1,10 @@
 (function() {
-  const API_ENDPOINT = 'https://comment.upxuu.com';
-  
-  // 配置参数 - 从 URL 参数获取，如果没有则使用默认值
-  const urlParams = new URLSearchParams(window.location.search);
-  let config = {
-    loadMode: urlParams.get('loadMode') || 'infinite',
-    pageSize: parseInt(urlParams.get('pageSize') || '6')
-  };
-  
-  // hCaptcha sitekey 将从后端 API 动态获取
-  let HCAPTCHA_SITE_KEY = null;
-  
-  // 获取 hCaptcha sitekey
-  async function getHcaptchaSiteKey() {
-    try {
-      const res = await fetch(`${API_ENDPOINT}/config`);
-      const data = await res.json();
-      HCAPTCHA_SITE_KEY = data.hcaptcha_site_key || '09063bfe-9ca4-46d6-ae94-b7486344b53a';
-      return HCAPTCHA_SITE_KEY;
-    } catch (err) {
-      console.error('Failed to get hCaptcha site key:', err);
-      HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a'; // Fallback
-      return HCAPTCHA_SITE_KEY;
-    }
-  }
+  const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+  const API_ENDPOINT = 'https://comment.upxuu.com'; // Your custom domain
+  const TURNSTILE_SITE_KEY = '0x4AAAAAACn8mlN8AydkHuPD'; // User provided this
 
   let replyingTo = null;
   let currentUser = JSON.parse(localStorage.getItem('extalk_user') || 'null');
-  let currentPage = 1;
-  let totalPages = 1;
-  let isLoading = false;
-  let hasMore = true;
-  let hcaptchaWidgetId = null;
-  let authHcaptchaWidgetId = null;
-  let verifyHcaptchaWidgetId = null;
-  let pendingCommentData = null; // 存储待提交的评论数据
-  let isVerified = false; // 会话级验证状态
 
   const styles = `
     #extalk-comments {
@@ -45,230 +14,117 @@
       margin: 20px auto;
     }
     .comment-form {
-      padding: 0;
+      background: #f0f7ff;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid #cce4ff;
       margin-bottom: 30px;
-      display: none;
-      opacity: 0;
-      transform: translateY(-20px);
-      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      max-height: 0;
-      overflow: hidden;
-    }
-    .comment-form.expanded {
-      display: block;
-      opacity: 1;
-      transform: translateY(0);
-      max-height: 500px;
-    }
-    .form-toggle-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #0070f3;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-bottom: 20px;
-      padding: 8px 12px;
-      border-radius: 10px;
-      background: rgba(0, 112, 243, 0.05);
-      width: fit-content;
-      transition: all 0.2s;
-    }
-    .form-toggle-btn:hover {
-      background: rgba(0, 112, 243, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 112, 243, 0.05);
     }
     .form-title {
       margin: 0 0 15px 0;
       color: #0070f3;
-      font-size: 1.1rem;
-      font-weight: 700;
+      font-size: 1.2rem;
+      font-weight: 600;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .close-form-btn {
-      font-size: 0.85rem;
-      color: #94a3b8;
-      cursor: pointer;
-      font-weight: 500;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: all 0.2s;
-    }
-    .close-form-btn:hover {
-      background: rgba(0, 0, 0, 0.05);
-      color: #64748b;
-    }
     .auth-btn {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: #0070f3;
       cursor: pointer;
-      font-weight: 500;
-      background: rgba(0, 112, 243, 0.08);
-      padding: 6px 12px;
-      border-radius: 8px;
-      transition: all 0.2s;
-    }
-    .auth-btn:hover {
-      background: rgba(0, 112, 243, 0.15);
+      font-weight: 400;
     }
     .input-group {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .comment-input {
       width: 100%;
       padding: 12px;
-      border: 1px solid rgba(0, 112, 243, 0.1);
+      border: 1px solid #d0e3ff;
       border-radius: 10px;
       box-sizing: border-box;
-      transition: all 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
       outline: none;
-      font-size: 0.95rem;
-      background: rgba(0, 112, 243, 0.02);
     }
     .comment-input:focus {
       border-color: #0070f3;
-      background: white;
+      box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
     }
     .submit-btn {
       background: #0070f3;
       color: white;
       border: none;
-      padding: 12px 28px;
-      border-radius: 12px;
+      padding: 10px 24px;
+      border-radius: 10px;
       cursor: pointer;
-      font-weight: 700;
-      transition: all 0.2s;
-      box-shadow: 0 4px 12px rgba(0, 112, 243, 0.3);
+      font-weight: 600;
+      transition: background 0.2s, transform 0.1s;
     }
     .submit-btn:hover {
       background: #0060d9;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 15px rgba(0, 112, 243, 0.4);
     }
     .submit-btn:active {
-      transform: translateY(0);
+      transform: scale(0.98);
     }
     .submit-btn:disabled {
-      background: #a0cfff;
+      background: #ccc;
       cursor: not-allowed;
-      box-shadow: none;
-    }
-    .views-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: #64748b;
-      font-size: 0.85rem;
-      margin-bottom: 15px;
-      padding: 0 5px;
-    }
-    .views-info-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .views-info-item.clickable {
-      cursor: pointer;
-      transition: color 0.2s;
-    }
-    .views-info-item.clickable:hover {
-      color: #e11d48;
-    }
-    .views-info-item.liked {
-      color: #e11d48;
-    }
-    .views-info svg {
-      width: 16px;
-      height: 16px;
-      opacity: 0.7;
-    }
-    .views-info-item.liked svg {
-      fill: currentColor;
-      opacity: 1;
     }
     .comment-item {
-      padding: 15px 0;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-      margin-bottom: 0;
+      background: white;
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px solid #eef2f8;
+      margin-bottom: 16px;
+      animation: slideIn 0.5s ease-out forwards;
       opacity: 0;
-      transform: translateX(-50px) translateY(50px);
-      transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+      transform: translateX(-20px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     }
-    .comment-item.animate-in {
-      opacity: 1;
-      transform: translateX(0) translateY(0);
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateX(0); }
     }
     .comment-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     .comment-author {
-      font-weight: 700;
-      color: #1a1a1a;
-      font-size: 1.05rem;
+      font-weight: 600;
+      color: #0070f3;
     }
     .comment-meta {
       font-size: 0.85rem;
-      color: #94a3b8;
+      color: #888;
     }
     .comment-content {
-      line-height: 1.7;
+      line-height: 1.6;
       word-break: break-all;
-      color: #334155;
-      font-size: 1rem;
     }
     .comment-footer {
-      margin-top: 15px;
+      margin-top: 10px;
       display: flex;
       gap: 15px;
-      font-size: 0.9rem;
-    }
-    .reply-btn { color: #0070f3; cursor: pointer; font-weight: 600; }
-    .like-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      color: #64748b;
       font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      user-select: none;
-      font-weight: 600;
     }
-    .like-btn:hover {
-      color: #e11d48;
-    }
-    .like-btn.liked {
-      color: #e11d48;
-    }
-    .like-btn svg {
-      width: 16px;
-      height: 16px;
-    }
-    .like-btn.liked svg {
-      fill: currentColor;
-    }
-    .del-btn { color: #ef4444; cursor: pointer; font-weight: 600; }
+    .reply-btn { color: #0070f3; cursor: pointer; }
+    .del-btn { color: #ff4d4f; cursor: pointer; font-weight: 500; }
     .reply-target {
-      background: #f1f5f9;
-      border-left: 4px solid #0070f3;
-      padding: 10px 15px;
-      margin-bottom: 15px;
-      font-size: 0.95rem;
-      color: #475569;
-      border-radius: 4px 12px 12px 4px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: #f9fbff;
+      border-left: 3px solid #0070f3;
+      padding: 5px 10px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      color: #666;
+      border-radius: 0 6px 6px 0;
     }
     .replies-container {
-      margin-left: 40px;
-      border-left: 2px solid #f1f5f9;
-      padding-left: 20px;
+      margin-left: 30px;
+      border-left: 2px solid #f0f7ff;
+      padding-left: 15px;
     }
     .floor-tag {
       background: #e1f0ff;
@@ -276,7 +132,7 @@
       padding: 2px 8px;
       border-radius: 6px;
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: bold;
     }
     .modal {
       display: none;
@@ -290,112 +146,15 @@
     }
     .modal-content {
       background-color: #fefefe;
-      margin: 10% auto;
-      padding: 30px;
-      border: 1px solid #888;
-      width: 90%;
-      max-width: 400px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
-    .pagination-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 2px solid rgba(0, 112, 243, 0.1);
-      flex-wrap: wrap;
-    }
-    .page-info {
-      color: #64748b;
-      font-size: 0.9rem;
-    }
-    .page-btn {
-      min-width: 36px;
-      height: 36px;
-      padding: 0 12px;
-      border: 1px solid rgba(0, 112, 243, 0.2);
-      background: white;
-      color: #0070f3;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .page-btn:hover {
-      background: rgba(0, 112, 243, 0.1);
-      border-color: #0070f3;
-    }
-    .page-btn.active {
-      background: #0070f3;
-      color: white;
-      border-color: #0070f3;
-    }
-    .page-btn:disabled {
-      background: #f1f5f9;
-      color: #94a3b8;
-      cursor: not-allowed;
-      border-color: #e2e8f0;
-    }
-    .load-more-btn {
-      background: #0070f3;
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.95rem;
-      transition: all 0.2s;
-      box-shadow: 0 4px 12px rgba(0, 112, 243, 0.3);
-    }
-    .load-more-btn:hover {
-      background: #0060d9;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 15px rgba(0, 112, 243, 0.4);
-    }
-    .load-more-btn:disabled {
-      background: #a0cfff;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-    .loading-indicator {
-      text-align: center;
+      margin: 15% auto;
       padding: 20px;
-      color: #94a3b8;
-      font-size: 0.9rem;
-      display: none;
-    }
-    .loading-indicator.show {
-      display: block;
-    }
-    .loading-spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(0, 112, 243, 0.3);
-      border-radius: 50%;
-      border-top-color: #0070f3;
-      animation: spin 0.8s linear infinite;
-      margin-right: 8px;
-      vertical-align: middle;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+      border: 1px solid #888;
+      width: 300px;
+      border-radius: 16px;
     }
   `;
 
-  async function init() {
-    // 先获取 hCaptcha sitekey
-    await getHcaptchaSiteKey();
-    
+  function init() {
     const container = document.getElementById('extalk-comments');
     if (!container) return;
 
@@ -412,7 +171,7 @@
       <div class="comment-form">
         <div class="form-title">
           <span id="form-title">发表评论</span>
-          <span class="close-form-btn" id="close-form-btn">关闭</span>
+          <span class="auth-btn" id="auth-status-btn">登录/注册</span>
         </div>
         <div id="reply-info"></div>
         <div class="input-group">
@@ -421,28 +180,20 @@
         <div class="input-group">
           <textarea id="comment-content" class="comment-input" style="height: 100px; resize: vertical;" placeholder="评论内容" required></textarea>
         </div>
+        <div id="cf-turnstile-container" style="margin-bottom: 15px;"></div>
         <button id="submit-comment" class="submit-btn">提交评论</button>
       </div>
-      <div class="views-info" id="views-info"></div>
       <div id="comments-list">正在加载评论...</div>
-      <div class="loading-indicator" id="loading-indicator">
-        <span class="loading-spinner"></span>加载中...
-      </div>
-      <div class="pagination-container" id="pagination-container" style="display: none;">
-        <span class="page-info" id="page-info"></span>
-        <button class="load-more-btn" id="load-more-btn">加载更多</button>
-      </div>
       
       <div id="auth-modal" class="modal">
         <div class="modal-content">
-          <h3 id="modal-title" style="margin-top: 0; color: #1a1a1a;">登录</h3>
+          <h3 id="modal-title">登录</h3>
           <div class="input-group"><input type="email" id="auth-email" class="comment-input" placeholder="邮箱" /></div>
           <div class="input-group"><input type="password" id="auth-password" class="comment-input" placeholder="密码" /></div>
           <div class="input-group" id="nickname-group" style="display:none;"><input type="text" id="auth-nickname" class="comment-input" placeholder="昵称" /></div>
-          <div id="auth-hcaptcha-container" style="margin-bottom: 15px;"></div>
           <button id="auth-submit" class="submit-btn" style="width:100%">提交</button>
-          <p style="font-size:0.85rem; text-align:center; margin-top:15px; color: #64748b;">
-            <a href="javascript:void(0)" id="auth-toggle" style="color: #0070f3; text-decoration: none;">切换到注册</a>
+          <p style="font-size:0.8rem; text-align:center; margin-top:10px;">
+            <a href="javascript:void(0)" id="auth-toggle">切换到注册</a>
           </p>
         </div>
       </div>
@@ -450,42 +201,18 @@
 
     updateAuthUI();
 
-    // 加载 hCaptcha
     const script = document.createElement('script');
-    script.src = 'https://js.hcaptcha.com/1/api.js';
+    script.src = SCRIPT_URL;
     script.async = true; script.defer = true;
     document.head.appendChild(script);
 
     script.onload = () => {
-      if (window.hcaptcha) {
-        // 只初始化登录/注册的 hCaptcha
-        authHcaptchaWidgetId = window.hcaptcha.render('#auth-hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
+      if (window.turnstile) {
+        window.turnstile.render('#cf-turnstile-container', { sitekey: TURNSTILE_SITE_KEY });
       }
     };
-
-    // 表单切换按钮
-    const toggleBtn = document.createElement('div');
-    toggleBtn.className = 'form-toggle-btn';
-    toggleBtn.innerHTML = `
-      <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-      </svg>
-      <span>发表评论</span>
-    `;
-    toggleBtn.onclick = () => {
-      const form = document.querySelector('.comment-form');
-      form.classList.toggle('expanded');
-      if (form.classList.contains('expanded')) {
-        document.getElementById('comment-content').focus();
-      }
-    };
-    container.insertBefore(toggleBtn, container.firstChild);
 
     document.getElementById('submit-comment').onclick = submitComment;
-    document.getElementById('close-form-btn').onclick = () => {
-      document.querySelector('.comment-form').classList.remove('expanded');
-    };
-    
     document.getElementById('auth-status-btn').onclick = () => {
       if (currentUser) {
         if(confirm('确定登出？')) {
@@ -516,12 +243,6 @@
       const password = document.getElementById('auth-password').value;
       const nickname = document.getElementById('auth-nickname').value;
       
-      const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(authHcaptchaWidgetId) : null;
-      if (!hcaptchaToken) {
-        alert('请先完成人机验证');
-        return;
-      }
-      
       const endpoint = isLogin ? '/auth/login' : '/auth/register';
       const body = isLogin ? { email, password } : { email, password, nickname };
 
@@ -550,69 +271,41 @@
   }
 
   function updateAuthUI() {
-    // 更新认证按钮显示
-    const authBtn = document.querySelector('.auth-btn');
-    if (!authBtn) return;
-    
+    const btn = document.getElementById('auth-status-btn');
+    const nickInput = document.getElementById('comment-nickname');
     if (currentUser) {
-      authBtn.innerText = `已登录：${currentUser.nickname}`;
+      btn.innerText = `已登录: ${currentUser.nickname} (登出)`;
+      nickInput.value = currentUser.nickname;
+      nickInput.disabled = true;
     } else {
-      authBtn.innerText = '登录/注册';
+      btn.innerText = '登录/注册';
+      nickInput.value = '';
+      nickInput.disabled = false;
     }
   }
 
-  async function loadComments(append = false) {
+  async function loadComments() {
     const listContainer = document.getElementById('comments-list');
     const pageUrl = window.location.pathname;
-    const loadingIndicator = document.getElementById('loading-indicator');
-    const paginationContainer = document.getElementById('pagination-container');
-    const pageInfo = document.getElementById('page-info');
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    
-    if (isLoading) return;
-    isLoading = true;
-    
-    if (append) {
-      loadingIndicator.classList.add('show');
-      loadMoreBtn.disabled = true;
-      loadMoreBtn.innerText = '加载中...';
-    } else {
-      listContainer.innerHTML = '正在加载评论...';
-    }
-    
     try {
-      const response = await fetch(`${API_ENDPOINT}/comments?url=${encodeURIComponent(pageUrl)}&page=${currentPage}&limit=${config.pageSize}`);
-      const data = await response.json();
-      const allComments = data.comments || [];
-      const total = data.total || 0;
-      const views = data.views || 0;
-      const pageLikes = data.page_likes || 0;
-      
-      totalPages = Math.ceil(total / config.pageSize);
-      hasMore = currentPage < totalPages;
-      
-      // 更新浏览数和点赞数显示
-      updateViewsInfo(views, pageLikes);
-      
-      if (allComments.length === 0 && !append) {
+      const response = await fetch(`${API_ENDPOINT}/comments?url=${encodeURIComponent(pageUrl)}`);
+      const allComments = await response.json();
+      if (allComments.length === 0) {
         listContainer.innerHTML = '<p style="text-align: center; color: #999; margin-top: 40px;">暂无评论，快来抢沙发吧！</p>';
-        paginationContainer.style.display = 'none';
         return;
       }
-      
       const rootComments = allComments.filter(c => !c.parent_id);
       const replies = allComments.filter(c => c.parent_id);
       const isAdmin = currentUser && currentUser.role === 'admin';
 
-      const html = rootComments.map((c, index) => {
+      listContainer.innerHTML = rootComments.map((c, index) => {
         const commentReplies = replies.filter(r => r.parent_id === c.id);
         const delBtnHtml = isAdmin ? `<span class="del-btn" onclick="window.delComment(${c.id})">删除</span>` : '';
-        const globalIndex = (currentPage - 1) * config.pageSize + index + 1;
         
         return `
-          <div class="comment-item">
+          <div class="comment-item" style="animation-delay: ${index * 0.1}s">
             <div class="comment-header">
-              <div><span class="comment-author">${escapeHtml(c.nickname)}</span><span class="floor-tag">${globalIndex}F</span></div>
+              <div><span class="comment-author">${escapeHtml(c.nickname)}</span><span class="floor-tag">${index+1}F</span></div>
               <span class="comment-meta">${new Date(c.created_at).toLocaleString()}</span>
             </div>
             <div class="comment-content">${escapeHtml(c.content)}</div>
@@ -639,156 +332,14 @@
             ` : ''}
           </div>`;
       }).join('');
-
-      if (append) {
-        // 追加模式：将新评论添加到列表末尾
-        listContainer.insertAdjacentHTML('beforeend', html);
-      } else {
-        // 首次加载：替换整个列表
-        listContainer.innerHTML = html;
-      }
-      
-      // 添加动画 - 一次只有一个评论项滑出
-      setTimeout(() => {
-        const commentItems = listContainer.querySelectorAll('.comment-item');
-        let currentIndex = append ? listContainer.querySelectorAll('.comment-item:not(.animate-in)').length > 0 ? 
-          listContainer.querySelectorAll('.comment-item:not(.animate-in)')[0] : null : commentItems[0];
-        
-        const observer = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('animate-in');
-              observer.unobserve(entry.target);
-              
-              // 观察下一个评论项
-              const nextIndex = Array.from(commentItems).indexOf(entry.target) + 1;
-              if (nextIndex < commentItems.length) {
-                observer.observe(commentItems[nextIndex]);
-              }
-            }
-          });
-        }, {
-          threshold: 0.3,
-          rootMargin: '0px 0px -100px 0px'
-        });
-        
-        // 从第一个未动画的评论项开始观察
-        const firstNotAnimated = Array.from(commentItems).find(item => !item.classList.contains('animate-in'));
-        if (firstNotAnimated) {
-          observer.observe(firstNotAnimated);
-        }
-      }, 100);
-      
-      // 更新分页信息
-      if (config.loadMode === 'button') {
-        // 按钮模式：显示加载更多按钮
-        paginationContainer.style.display = 'flex';
-        paginationContainer.innerHTML = `
-          <span class="page-info">第 ${currentPage} / ${totalPages} 页</span>
-          <button class="load-more-btn" id="load-more-btn">${hasMore ? '加载更多' : '没有更多了'}</button>
-        `;
-        document.getElementById('load-more-btn').disabled = !hasMore;
-      } else if (config.loadMode === 'pagination') {
-        // 分页模式：显示页码按钮
-        paginationContainer.style.display = 'flex';
-        let pageButtons = '';
-        
-        // 上一页按钮
-        pageButtons += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">上一页</button>`;
-        
-        // 页码按钮（最多显示 5 个）
-        const startPage = Math.max(1, currentPage - 2);
-        const endPage = Math.min(totalPages, startPage + 4);
-        
-        for (let i = startPage; i <= endPage; i++) {
-          pageButtons += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
-        }
-        
-        // 下一页按钮
-        pageButtons += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">下一页</button>`;
-        
-        pageButtons += `<span class="page-info" style="margin-left: 10px;">共 ${totalPages} 页</span>`;
-        
-        paginationContainer.innerHTML = pageButtons;
-        
-        // 添加页码按钮点击事件
-        paginationContainer.querySelectorAll('.page-btn[data-page]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const page = parseInt(btn.getAttribute('data-page'));
-            if (page && page !== currentPage && !btn.disabled) {
-              currentPage = page;
-              loadComments(false); // 不追加，替换整个列表
-              // 滚动到顶部
-              document.getElementById('extalk-comments').scrollIntoView({ behavior: 'smooth' });
-            }
-          });
-        });
-      } else {
-        // 无限滚动模式：隐藏分页控件
-        paginationContainer.style.display = 'none';
-      }
-      
-    } catch (err) {
-      console.error(err);
-      if (append) {
-        alert('加载失败，请重试');
-      } else {
-        listContainer.innerHTML = '<p style="text-align: center; color: #ef4444;">加载失败，请刷新页面重试</p>';
-      }
-    } finally {
-      isLoading = false;
-      loadingIndicator.classList.remove('show');
-      if (loadMoreBtn) {
-        loadMoreBtn.disabled = !hasMore;
-        loadMoreBtn.innerText = hasMore ? '加载更多' : '没有更多了';
-      }
-    }
-  }
-
-  function updateViewsInfo(views, likes) {
-    const container = document.getElementById('views-info');
-    if (!container) return;
-    
-    container.innerHTML = `
-      <div class="views-info-item">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-        </svg>
-        <span>${views} 次浏览</span>
-      </div>
-      <div class="views-info-item clickable" id="like-btn">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-        </svg>
-        <span>${likes} 次喜欢</span>
-      </div>
-    `;
-    
-    // 点赞功能
-    document.getElementById('like-btn').onclick = async () => {
-      try {
-        await fetch(`${API_ENDPOINT}/like?url=${encodeURIComponent(window.location.pathname)}`, { method: 'POST' });
-        const likeItem = document.getElementById('like-btn');
-        likeItem.classList.add('liked');
-        const count = parseInt(likeItem.querySelector('span').innerText);
-        likeItem.querySelector('span').innerText = `${count + 1} 次喜欢`;
-      } catch (err) {
-        console.error(err);
-      }
-    };
+    } catch (err) { console.error(err); }
   }
 
   window.setReply = function(id, nickname) {
     replyingTo = id;
-    const form = document.querySelector('.comment-form');
-    form.classList.add('expanded');
     document.getElementById('form-title').innerText = '回复评论';
     document.getElementById('reply-info').innerHTML = `
-      <div class="reply-target">
-        <span>回复 @${nickname}</span>
-        <svg onclick="window.cancelReply()" style="width:18px;height:18px;cursor:pointer;color:#ef4444" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </div>`;
+      <div class="reply-target">回复 @${nickname}: <span onclick="window.cancelReply()" style="color:#ff4d4f;cursor:pointer;margin-left:10px;">取消</span></div>`;
     document.getElementById('comment-content').focus();
     document.getElementById('extalk-comments').scrollIntoView({ behavior: 'smooth' });
   };
@@ -814,110 +365,10 @@
   async function submitComment() {
     const content = document.getElementById('comment-content').value.trim();
     const nickname = document.getElementById('comment-nickname').value.trim();
-    
-    if (!content || !nickname) return alert('请填写完整');
-    
-    // 如果已验证，直接提交
-    if (isVerified) {
-      await submitCommentWithToken(window.hcaptcha.getResponse(hcaptchaWidgetId));
-      return;
-    }
-    
-    // 存储待提交的评论数据
-    pendingCommentData = {
-      page_url: window.location.pathname,
-      nickname,
-      content,
-      parent_id: replyingTo
-    };
-    
-    // 显示验证弹窗
-    showVerifyModal();
-  }
-  
-  function showVerifyModal() {
-    // 创建验证弹窗
-    const modal = document.createElement('div');
-    modal.id = 'verify-modal';
-    modal.style.cssText = 'display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);';
-    
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = 'background-color: #fefefe; margin: 15% auto; padding: 30px; border: 1px solid #888; width: 90%; max-width: 380px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;';
-    
-    const title = document.createElement('h3');
-    title.textContent = '安全验证';
-    title.style.cssText = 'margin-top: 0; color: #1a1a1a; margin-bottom: 20px;';
-    
-    const description = document.createElement('p');
-    description.textContent = '请完成人机验证以继续提交评论';
-    description.style.cssText = 'color: #64748b; margin-bottom: 20px; font-size: 0.95rem;';
-    
-    const captchaDiv = document.createElement('div');
-    captchaDiv.id = 'verify-hcaptcha-container';
-    captchaDiv.style.cssText = 'margin-bottom: 20px; display: flex; justify-content: center;';
-    
-    const submitBtn = document.createElement('button');
-    submitBtn.textContent = '提交评论';
-    submitBtn.style.cssText = 'width: 100%; padding: 12px; background: #0070f3; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;';
-    submitBtn.onmouseover = () => submitBtn.style.backgroundColor = '#0060d9';
-    submitBtn.onmouseout = () => submitBtn.style.backgroundColor = '#0070f3';
-    
-    submitBtn.onclick = async () => {
-      const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(verifyHcaptchaWidgetId) : null;
-      if (!hcaptchaToken) {
-        alert('请先完成人机验证');
-        return;
-      }
-      
-      submitBtn.disabled = true;
-      submitBtn.innerText = '提交中...';
-      
-      await submitCommentWithToken(hcaptchaToken);
-      
-      // 关闭弹窗
-      modal.style.display = 'none';
-      document.body.removeChild(modal);
-    };
-    
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = '取消';
-    cancelBtn.style.cssText = 'width: 100%; padding: 10px; background: transparent; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 10px; transition: all 0.2s;';
-    cancelBtn.onmouseover = () => { cancelBtn.style.backgroundColor = '#f1f5f9'; cancelBtn.style.borderColor = '#cbd5e1'; };
-    cancelBtn.onmouseout = () => { cancelBtn.style.backgroundColor = 'transparent'; cancelBtn.style.borderColor = '#e2e8f0'; };
-    
-    cancelBtn.onclick = () => {
-      modal.style.display = 'none';
-      document.body.removeChild(modal);
-      pendingCommentData = null;
-    };
-    
-    modalContent.appendChild(title);
-    modalContent.appendChild(description);
-    modalContent.appendChild(captchaDiv);
-    modalContent.appendChild(submitBtn);
-    modalContent.appendChild(cancelBtn);
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
-    
-    // 显示弹窗
-    modal.style.display = 'block';
-    
-    // 加载 hCaptcha
-    if (!verifyHcaptchaWidgetId && window.hcaptcha) {
-      verifyHcaptchaWidgetId = window.hcaptcha.render('verify-hcaptcha-container', { 
-        sitekey: HCAPTCHA_SITE_KEY,
-        theme: 'light'
-      });
-    }
-  }
-  
-  async function submitCommentWithToken(hcaptchaToken) {
+    const turnstileToken = document.querySelector('[name="cf-turnstile-response"]').value;
+    if (!content || !nickname || !turnstileToken) return alert('请填写完整');
     const submitBtn = document.getElementById('submit-comment');
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.innerText = '提交中...';
-    }
-    
+    submitBtn.disabled = true; submitBtn.innerText = '提交中...';
     try {
       const res = await fetch(`${API_ENDPOINT}/comments`, {
         method: 'POST',
@@ -926,67 +377,19 @@
           'Authorization': currentUser ? `Bearer ${currentUser.token}` : ''
         },
         body: JSON.stringify({
-          page_url: pendingCommentData.page_url,
-          nickname: pendingCommentData.nickname,
-          content: pendingCommentData.content,
-          hcaptcha_token: hcaptchaToken,
-          parent_id: pendingCommentData.parent_id
+          page_url: window.location.pathname,
+          nickname, content, turnstile_token: turnstileToken, parent_id: replyingTo
         })
       });
       if (res.ok) {
-        // 清空表单
         document.getElementById('comment-content').value = '';
         cancelReply();
-        if (window.hcaptcha) window.hcaptcha.reset(hcaptchaWidgetId);
-        
-        // 重置到第一页并重新加载
-        currentPage = 1;
+        if (window.turnstile) window.turnstile.reset('#cf-turnstile-container');
         loadComments();
-        
-        // 标记为已验证（会话级）
-        isVerified = true;
-        
-        // 提示成功
-        alert('评论成功！');
       } else { alert(await res.text()); }
     } catch (err) { alert('提交失败'); }
-    finally {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerText = '提交评论';
-      }
-      pendingCommentData = null;
-    }
+    finally { submitBtn.disabled = false; submitBtn.innerText = '提交评论'; }
   }
-
-  // 加载更多按钮点击事件
-  document.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'load-more-btn') {
-      if (hasMore && !isLoading) {
-        currentPage++;
-        loadComments(true); // append mode
-      }
-    }
-  });
-
-  // 无限滚动加载
-  let scrollTimeout;
-  window.addEventListener('scroll', () => {
-    if (config.loadMode !== 'infinite' || isLoading || !hasMore) return;
-    
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      
-      // 距离底部还有 200px 时触发加载
-      if (scrollTop + windowHeight >= documentHeight - 200) {
-        currentPage++;
-        loadComments(true); // append mode
-      }
-    }, 200);
-  });
 
   function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
