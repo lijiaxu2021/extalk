@@ -3,11 +3,13 @@ import { D1Database } from "@cloudflare/workers-types/experimental";
 export interface Env {
   DB: D1Database;
   HCAPTCHA_SECRET_KEY: string;
+  HCAPTCHA_SITE_KEY: string;
   RESEND_API_KEY: string;
   JWT_SECRET: string;
   ADMIN_EMAIL: string;
   ADMIN_PASS: string;
   BASE_URL: string;
+  ASSETS: any;
 }
 
 // Utility to hash password
@@ -177,11 +179,14 @@ export default {
 
     // Serve static files from assets
     if (request.method === "GET" && url.pathname === "/") {
-      return new Response(env.ASSETS.get("index.html"), {
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-        },
-      });
+      const html = await env.ASSETS.get("index.html");
+      if (html) {
+        return new Response(html, {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+          },
+        });
+      }
     }
     
     // Config API - provide hCaptcha site key to SDK
