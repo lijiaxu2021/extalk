@@ -53,7 +53,7 @@ async function hmacSha256(message: string, secret: string) {
   return btoa(String.fromCharCode(...new Uint8Array(sig)));
 }
 
-async function sendEmail(env: Env, to: string, subject: string, html: string, fromName: string = "Fuwari") {
+async function sendEmail(env: Env, to: string, subject: string, html: string, fromName: string = "ExTalk") {
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -221,7 +221,7 @@ export default {
   const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
 
   let replyingTo = null;
-  let currentUser = JSON.parse(localStorage.getItem('fuwari_user') || 'null');
+  let currentUser = JSON.parse(localStorage.getItem('extalk_user') || 'null');
   let currentPage = 1;
   const pageSize = 6;
   let maxCommentLength = 500;
@@ -229,7 +229,7 @@ export default {
   let authHcaptchaWidgetId = null;
 
   const styles = \`
-    #fuwari-comments {
+    #extalk-comments {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #333;
       max-width: 800px;
@@ -549,7 +549,7 @@ export default {
   \`;
 
   function init() {
-    const container = document.getElementById('fuwari-comments');
+    const container = document.getElementById('extalk-comments');
     if (!container) return;
 
     const styleTag = document.createElement('style');
@@ -660,7 +660,7 @@ export default {
     document.getElementById('auth-status-btn').onclick = () => {
       if (currentUser) {
         if(confirm('确定登出当前账户？')) {
-           localStorage.removeItem('fuwari_user');
+           localStorage.removeItem('extalk_user');
            currentUser = null;
            updateAuthUI();
            loadComments();
@@ -738,7 +738,7 @@ export default {
           const data = await res.json();
           if (res.ok) {
             currentUser = data;
-            localStorage.setItem('fuwari_user', JSON.stringify(data));
+            localStorage.setItem('extalk_user', JSON.stringify(data));
             document.getElementById('auth-modal').style.display = 'none';
             updateAuthUI();
             loadComments();
@@ -948,7 +948,7 @@ export default {
     currentPage = page;
     
     // 添加分页切换过渡效果
-    const commentsContainer = document.getElementById('fuwari-comments');
+    const commentsContainer = document.getElementById('extalk-comments');
     const listContainer = document.getElementById('comments-list');
     
     // 先淡出现有评论
@@ -988,7 +988,7 @@ export default {
         <svg onclick="window.cancelReply()" style="width:18px;height:18px;cursor:pointer;color:#ef4444" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </div>\`;
     document.getElementById('comment-content').focus();
-    document.getElementById('fuwari-comments').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('extalk-comments').scrollIntoView({ behavior: 'smooth' });
   };
 
   window.cancelReply = function() {
@@ -1206,7 +1206,7 @@ export default {
 
     // Admin Panel
     if (url.pathname === "/upxuuadmin") {
-      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fuwari Admin</title><style>
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ExTalk Admin</title><style>
         :root { --primary: #0070f3; --bg: #f4f7f6; --text: #333; --card: #fff; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
         .sidebar { width: 220px; background: #1a1a1a; color: white; height: 100vh; position: fixed; padding: 20px; box-sizing: border-box; }
@@ -1232,7 +1232,7 @@ export default {
         .tag.green { background: #e6fffa; color: #38b2ac; }
       </style></head><body>
       <div class="sidebar">
-        <h2>Fuwari Admin</h2>
+        <h2>ExTalk Admin</h2>
         <div class="nav-item active" onclick="showTab('comments', this)">评论管理</div>
         <div class="nav-item" onclick="showTab('domains', this)">域名/设置</div>
         <div class="nav-item" onclick="showTab('users', this)">用户管理</div>
@@ -1243,7 +1243,7 @@ export default {
       <script>
         const API = '${url.origin}';
         const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
-        let token = localStorage.getItem('fuwari_admin_token');
+        let token = localStorage.getItem('extalk_admin_token');
         let currentTab = 'comments';
         let data = { comments: [], domains: [], users: [] };
         let filters = { comment: '' };
@@ -1257,18 +1257,116 @@ export default {
         }
 
         function showLoginModal() {
-          // 使用简单的prompt方式，避免复杂的HTML模板问题
-          const email = prompt('请输入管理员邮箱:');
-          const password = prompt('请输入密码:');
+          // 创建完整的登录界面
+          const container = document.createElement('div');
+          container.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: -apple-system, system-ui, sans-serif;';
           
-          if (!email || !password) {
-            alert('邮箱和密码不能为空');
-            location.reload();
-            return;
-          }
+          const loginBox = document.createElement('div');
+          loginBox.style.cssText = 'background: white; padding: 40px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box;';
           
-          // 提示用户需要完成hCaptcha验证
-          alert('请在页面中完成人机验证后登录');
+          // 标题
+          const title = document.createElement('h2');
+          title.textContent = '管理员登录';
+          title.style.cssText = 'text-align: center; margin-bottom: 30px; color: #1a1a1a; font-size: 24px; font-weight: 600;';
+          
+          // 邮箱输入框
+          const emailLabel = document.createElement('label');
+          emailLabel.textContent = '邮箱';
+          emailLabel.style.cssText = 'display: block; margin-bottom: 8px; color: #4a5568; font-size: 14px; font-weight: 500;';
+          
+          const emailInput = document.createElement('input');
+          emailInput.type = 'email';
+          emailInput.id = 'admin-email';
+          emailInput.placeholder = '请输入管理员邮箱';
+          emailInput.style.cssText = 'width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s;';
+          emailInput.onfocus = () => emailInput.style.borderColor = '#0070f3';
+          emailInput.onblur = () => emailInput.style.borderColor = '#e2e8f0';
+          
+          const emailDiv = document.createElement('div');
+          emailDiv.style.cssText = 'margin-bottom: 20px;';
+          emailDiv.appendChild(emailLabel);
+          emailDiv.appendChild(emailInput);
+          
+          // 密码输入框
+          const passwordLabel = document.createElement('label');
+          passwordLabel.textContent = '密码';
+          passwordLabel.style.cssText = 'display: block; margin-bottom: 8px; color: #4a5568; font-size: 14px; font-weight: 500;';
+          
+          const passwordInput = document.createElement('input');
+          passwordInput.type = 'password';
+          passwordInput.id = 'admin-password';
+          passwordInput.placeholder = '请输入密码';
+          passwordInput.style.cssText = 'width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s;';
+          passwordInput.onfocus = () => passwordInput.style.borderColor = '#0070f3';
+          passwordInput.onblur = () => passwordInput.style.borderColor = '#e2e8f0';
+          
+          const passwordDiv = document.createElement('div');
+          passwordDiv.style.cssText = 'margin-bottom: 20px;';
+          passwordDiv.appendChild(passwordLabel);
+          passwordDiv.appendChild(passwordInput);
+          
+          // 人机验证容器
+          const captchaDiv = document.createElement('div');
+          captchaDiv.id = 'hcaptcha-container';
+          captchaDiv.style.cssText = 'margin-bottom: 20px; display: flex; justify-content: center;';
+          
+          // 登录按钮
+          const loginBtn = document.createElement('button');
+          loginBtn.textContent = '登录';
+          loginBtn.style.cssText = 'width: 100%; padding: 12px; background: #0070f3; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;';
+          loginBtn.onmouseover = () => loginBtn.style.backgroundColor = '#0056cc';
+          loginBtn.onmouseout = () => loginBtn.style.backgroundColor = '#0070f3';
+          
+          loginBtn.onclick = async () => {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            if (!email || !password) {
+              alert('请输入邮箱和密码');
+              return;
+            }
+            
+            const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(hcaptchaWidgetId) : null;
+            if (!hcaptchaToken) {
+              alert('请先完成人机验证');
+              return;
+            }
+            
+            loginBtn.textContent = '登录中...';
+            loginBtn.disabled = true;
+            
+            try {
+              const res = await fetch(API + '/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password, hcaptcha_token: hcaptchaToken }),
+                headers: { 'Content-Type': 'application/json' }
+              });
+              const data = await res.json();
+              
+              if (res.ok && data.token && data.role === 'admin') {
+                token = data.token;
+                localStorage.setItem('extalk_admin_token', token);
+                location.reload();
+              } else {
+                alert(data.error || '登录失败');
+                if (window.hcaptcha) window.hcaptcha.reset(hcaptchaWidgetId);
+              }
+            } catch (err) {
+              alert('网络错误，请重试');
+            } finally {
+              loginBtn.textContent = '登录';
+              loginBtn.disabled = false;
+            }
+          };
+          
+          // 组装界面
+          loginBox.appendChild(title);
+          loginBox.appendChild(emailDiv);
+          loginBox.appendChild(passwordDiv);
+          loginBox.appendChild(captchaDiv);
+          loginBox.appendChild(loginBtn);
+          container.appendChild(loginBox);
+          document.body.appendChild(container);
           
           // 加载hCaptcha
           const script = document.createElement('script');
@@ -1278,57 +1376,11 @@ export default {
           
           script.onload = () => {
             if (window.hcaptcha) {
-              // 创建一个简单的验证容器
-              const container = document.createElement('div');
-              container.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
-              
-              const box = document.createElement('div');
-              box.style.cssText = 'background: white; padding: 30px; border-radius: 10px; text-align: center;';
-              
-              const title = document.createElement('h3');
-              title.textContent = '人机验证';
-              
-              const captchaDiv = document.createElement('div');
-              captchaDiv.id = 'hcaptcha-container';
-              
-              const loginBtn = document.createElement('button');
-              loginBtn.textContent = '验证并登录';
-              loginBtn.style.cssText = 'margin-top: 20px; padding: 10px 20px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer;';
-              loginBtn.onclick = async () => {
-                const hcaptchaToken = window.hcaptcha.getResponse(hcaptchaWidgetId);
-                if (!hcaptchaToken) {
-                  alert('请先完成人机验证');
-                  return;
-                }
-                
-                try {
-                  const res = await fetch(API + '/auth/login', {
-                    method: 'POST',
-                    body: JSON.stringify({ email, password, hcaptcha_token: hcaptchaToken }),
-                    headers: { 'Content-Type': 'application/json' }
-                  });
-                  const data = await res.json();
-                  
-                  if (res.ok && data.token && data.role === 'admin') {
-                    token = data.token;
-                    localStorage.setItem('fuwari_admin_token', token);
-                    location.reload();
-                  } else {
-                    alert(data.error || '登录失败');
-                    window.hcaptcha.reset(hcaptchaWidgetId);
-                  }
-                } catch (err) {
-                  alert('网络错误，请重试');
-                }
-              };
-              
-              box.appendChild(title);
-              box.appendChild(captchaDiv);
-              box.appendChild(loginBtn);
-              container.appendChild(box);
-              document.body.appendChild(container);
-              
-              hcaptchaWidgetId = window.hcaptcha.render('hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
+              hcaptchaWidgetId = window.hcaptcha.render('hcaptcha-container', { 
+                sitekey: HCAPTCHA_SITE_KEY,
+                theme: 'light',
+                size: 'normal'
+              });
             }
           };
         }
