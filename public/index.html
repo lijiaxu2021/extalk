@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExTalk 评论系统 - 三种加载模式演示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 60px;
+    }
+    
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+    
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .demo-card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .demo-card h2 {
+      color: #1a1a1a;
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .demo-card .badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #0070f3;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .demo-card .description {
+      color: #64748b;
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    
+    .demo-card .code {
+      background: #f1f5f9;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.85rem;
+      color: #334155;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    
+    .demo-card .comment-container {
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      background: #fafafa;
+      min-height: 300px;
+    }
+    
+    .mode-indicator {
+      text-align: center;
+      padding: 10px;
+      background: rgba(0, 112, 243, 0.1);
+      border-radius: 8px;
+      color: #0070f3;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+    
+    footer {
+      text-align: center;
+      color: white;
+      margin-top: 60px;
+      padding: 20px;
+      opacity: 0.9;
+    }
+    
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 2rem;
+      }
+      
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎉 ExTalk 评论系统</h1>
+      <p>三种加载模式演示 - 选择最适合你的方式</p>
+    </header>
+    
+    <div class="demo-grid">
+      <!-- 模式 1: 无限滚动 -->
+      <div class="demo-card">
+        <h2>
+          无限滚动模式
+          <span class="badge">默认</span>
+        </h2>
+        <p class="description">
+          滚动到页面底部时自动加载下一批评论，提供流畅的浏览体验，适合内容较多的场景。
+        </p>
+        <div class="code">
+&lt;div id="extalk-comments"&gt;&lt;/div&gt;
+&lt;script src="https://comment.upxuu.com/sdk.js?loadMode=infinite"&gt;&lt;/script&gt;
+        </div>
+        <div class="mode-indicator">📍 当前模式：无限滚动</div>
+        <div class="comment-container">
+          <div id="extalk-comments-infinite"></div>
+        </div>
+      </div>
+      
+      <!-- 模式 2: 加载更多 -->
+      <div class="demo-card">
+        <h2>
+          加载更多模式
+          <span class="badge">推荐</span>
+        </h2>
+        <p class="description">
+          每次加载固定数量的评论，点击"加载更多"按钮获取下一批，用户可控性强，性能友好。
+        </p>
+        <div class="code">
+&lt;div id="extalk-comments"&gt;&lt;/div&gt;
+&lt;script src="https://comment.upxuu.com/sdk.js?loadMode=button"&gt;&lt;/script&gt;
+        </div>
+        <div class="mode-indicator">📍 当前模式：加载更多</div>
+        <div class="comment-container">
+          <div id="extalk-comments-button"></div>
+        </div>
+      </div>
+      
+      <!-- 模式 3: 分页模式 -->
+      <div class="demo-card">
+        <h2>
+          分页模式
+          <span class="badge">经典</span>
+        </h2>
+        <p class="description">
+          显示所有页码，支持跳转到任意页面，传统的分页方式，适合需要精确定位的场景。
+        </p>
+        <div class="code">
+&lt;div id="extalk-comments"&gt;&lt;/div&gt;
+&lt;script src="https://comment.upxuu.com/sdk.js?loadMode=pagination"&gt;&lt;/script&gt;
+        </div>
+        <div class="mode-indicator">📍 当前模式：分页模式</div>
+        <div class="comment-container">
+          <div id="extalk-comments-pagination"></div>
+        </div>
+      </div>
+    </div>
+    
+    <footer>
+      <p>ExTalk Comment System - Powered by Cloudflare Workers</p>
+      <p style="margin-top: 10px; font-size: 0.9rem;">
+        默认配置：每页 6 条评论 | 可通过 pageSize 参数自定义
+      </p>
+    </footer>
+  </div>
+  
+  <!-- 三种模式的评论容器 -->
+  <script>
+    // 为每个演示容器加载对应的 SDK
+    // 模式 1: 无限滚动
+    const script1 = document.createElement('script');
+    script1.src = 'https://comment.upxuu.com/sdk.js?loadMode=infinite&pageSize=6';
+    script1.onload = () => {
+      // 克隆容器并移动到正确位置
+      const container = document.getElementById('extalk-comments-infinite');
+      container.id = 'extalk-comments';
+    };
+    document.head.appendChild(script1);
+    
+    // 模式 2: 加载更多
+    setTimeout(() => {
+      const script2 = document.createElement('script');
+      script2.src = 'https://comment.upxuu.com/sdk.js?loadMode=button&pageSize=6';
+      script2.onload = () => {
+        const container = document.createElement('div');
+        container.id = 'extalk-comments';
+        document.getElementById('extalk-comments-button').appendChild(container);
+      };
+      document.head.appendChild(script2);
+    }, 1000);
+    
+    // 模式 3: 分页模式
+    setTimeout(() => {
+      const script3 = document.createElement('script');
+      script3.src = 'https://comment.upxuu.com/sdk.js?loadMode=pagination&pageSize=6';
+      script3.onload = () => {
+        const container = document.createElement('div');
+        container.id = 'extalk-comments';
+        document.getElementById('extalk-comments-pagination').appendChild(container);
+      };
+      document.head.appendChild(script3);
+    }, 2000);
+  </script>
+</body>
+</html>

@@ -175,6 +175,22 @@ export default {
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
 
+    // Serve static files from public directory
+    if (request.method === "GET" && url.pathname === "/") {
+      try {
+        const html = await env.__STATIC_CONTENT.get("index.html");
+        if (html) {
+          return new Response(html, {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+            },
+          });
+        }
+      } catch (e) {
+        // If static content binding is not available, continue to default behavior
+      }
+    }
+
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }

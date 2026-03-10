@@ -6,7 +6,7 @@
   // 配置参数 - 从 URL 参数获取，如果没有则使用默认值
   const urlParams = new URLSearchParams(window.location.search);
   let config = {
-    loadMode: urlParams.get('loadMode') || 'infinite', // 'infinite' 或 'button'
+    loadMode: urlParams.get('loadMode') || 'infinite', // 'infinite' (无限滚动) | 'button' (加载更多) | 'pagination' (分页模式)
     pageSize: parseInt(urlParams.get('pageSize') || '6')
   };
 
@@ -284,14 +284,46 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       margin-top: 30px;
       padding-top: 20px;
       border-top: 2px solid rgba(0, 112, 243, 0.1);
+      flex-wrap: wrap;
     }
     .page-info {
       color: #64748b;
       font-size: 0.9rem;
+    }
+    .page-btn {
+      min-width: 36px;
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid rgba(0, 112, 243, 0.2);
+      background: white;
+      color: #0070f3;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .page-btn:hover {
+      background: rgba(0, 112, 243, 0.1);
+      border-color: #0070f3;
+    }
+    .page-btn.active {
+      background: #0070f3;
+      color: white;
+      border-color: #0070f3;
+    }
+    .page-btn:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      cursor: not-allowed;
+      border-color: #e2e8f0;
     }
     .load-more-btn {
       background: #0070f3;
@@ -629,11 +661,48 @@
       
       // 更新分页信息
       if (config.loadMode === 'button') {
-        // 按钮模式：显示分页控件
+        // 按钮模式：显示加载更多按钮
         paginationContainer.style.display = 'flex';
-        pageInfo.innerText = `第 ${currentPage} / ${totalPages} 页`;
-        loadMoreBtn.disabled = !hasMore;
-        loadMoreBtn.innerText = hasMore ? '加载更多' : '没有更多了';
+        paginationContainer.innerHTML = `
+          <span class="page-info">第 ${currentPage} / ${totalPages} 页</span>
+          <button class="load-more-btn" id="load-more-btn">${hasMore ? '加载更多' : '没有更多了'}</button>
+        `;
+        document.getElementById('load-more-btn').disabled = !hasMore;
+      } else if (config.loadMode === 'pagination') {
+        // 分页模式：显示页码按钮
+        paginationContainer.style.display = 'flex';
+        let pageButtons = '';
+        
+        // 上一页按钮
+        pageButtons += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">上一页</button>`;
+        
+        // 页码按钮（最多显示 5 个）
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, startPage + 4);
+        
+        for (let i = startPage; i <= endPage; i++) {
+          pageButtons += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+        }
+        
+        // 下一页按钮
+        pageButtons += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">下一页</button>`;
+        
+        pageButtons += `<span class="page-info" style="margin-left: 10px;">共 ${totalPages} 页</span>`;
+        
+        paginationContainer.innerHTML = pageButtons;
+        
+        // 添加页码按钮点击事件
+        paginationContainer.querySelectorAll('.page-btn[data-page]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const page = parseInt(btn.getAttribute('data-page'));
+            if (page && page !== currentPage && !btn.disabled) {
+              currentPage = page;
+              loadComments(false); // 不追加，替换整个列表
+              // 滚动到顶部
+              document.getElementById('extalk-comments').scrollIntoView({ behavior: 'smooth' });
+            }
+          });
+        });
       } else {
         // 无限滚动模式：隐藏分页控件
         paginationContainer.style.display = 'none';
