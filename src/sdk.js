@@ -421,7 +421,6 @@
         <div class="input-group">
           <textarea id="comment-content" class="comment-input" style="height: 100px; resize: vertical;" placeholder="评论内容" required></textarea>
         </div>
-        <div id="hcaptcha-container" style="margin-bottom: 15px;"></div>
         <button id="submit-comment" class="submit-btn">提交评论</button>
       </div>
       <div class="views-info" id="views-info"></div>
@@ -459,7 +458,7 @@
 
     script.onload = () => {
       if (window.hcaptcha) {
-        hcaptchaWidgetId = window.hcaptcha.render('#hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
+        // 只初始化登录/注册的 hCaptcha
         authHcaptchaWidgetId = window.hcaptcha.render('#auth-hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
       }
     };
