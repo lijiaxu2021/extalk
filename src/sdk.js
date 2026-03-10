@@ -4,10 +4,10 @@
   const TURNSTILE_SITE_KEY = '0x4AAAAAACn8mlN8AydkHuPD'; // User provided this
 
   let replyingTo = null;
-  let currentUser = JSON.parse(localStorage.getItem('fuwari_user') || 'null');
+  let currentUser = JSON.parse(localStorage.getItem('extalk_user') || 'null');
 
   const styles = `
-    #fuwari-comments {
+    #extalk-comments {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #333;
       max-width: 800px;
@@ -155,7 +155,7 @@
   `;
 
   function init() {
-    const container = document.getElementById('fuwari-comments');
+    const container = document.getElementById('extalk-comments');
     if (!container) return;
 
     const styleTag = document.createElement('style');
@@ -216,7 +216,7 @@
     document.getElementById('auth-status-btn').onclick = () => {
       if (currentUser) {
         if(confirm('确定登出？')) {
-           localStorage.removeItem('fuwari_user');
+           localStorage.removeItem('extalk_user');
            currentUser = null;
            updateAuthUI();
            loadComments();
@@ -256,7 +256,7 @@
         if (res.ok) {
           if (isLogin) {
             currentUser = data;
-            localStorage.setItem('fuwari_user', JSON.stringify(data));
+            localStorage.setItem('extalk_user', JSON.stringify(data));
             document.getElementById('auth-modal').style.display = 'none';
             updateAuthUI();
             loadComments();
@@ -341,7 +341,7 @@
     document.getElementById('reply-info').innerHTML = `
       <div class="reply-target">回复 @${nickname}: <span onclick="window.cancelReply()" style="color:#ff4d4f;cursor:pointer;margin-left:10px;">取消</span></div>`;
     document.getElementById('comment-content').focus();
-    document.getElementById('fuwari-comments').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('extalk-comments').scrollIntoView({ behavior: 'smooth' });
   };
 
   window.cancelReply = function() {
