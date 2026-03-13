@@ -81,83 +81,193 @@ https://your-worker-domain.workers.dev/init-admin-999
 
 ### 后端架构 (Cloudflare Workers + D1)
 
-#### 数据存储与一致性
-- **D1 数据库**：基于 SQLite 的边缘数据库，利用事务特性确保评论计数与嵌套逻辑的准确性
-- **时间同步**：全站强制使用北京时间 (UTC+8)，从数据库存储到前端显示，彻底解决时区混乱问题
+#### 数据库架构设计
 
-#### API 设计
-```typescript
-// 评论获取 API
-GET /comments?url={page_url}&page={page}&limit={limit}
+**核心数据表结构：**
 
-// 评论提交 API  
-POST /comments
-{
-  "page_url": string,
-  "nickname": string,
-  "content": string,
-  "hcaptcha_token": string,
-  "parent_id": number | null
-}
+```sql
+-- 用户表：存储注册用户和管理员信息
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT UNIQUE NOT NULL,           -- 用户邮箱（登录凭证）
+  nickname TEXT NOT NULL,                -- 用户昵称
+  password_hash TEXT NOT NULL,           -- bcrypt 加密的密码哈希
+  role TEXT DEFAULT 'user',              -- 角色：'admin' 或 'user'
+  verified INTEGER DEFAULT 0,            -- 邮箱验证状态
+  verification_token TEXT,               -- OTP 验证令牌
+  ip_display_level TEXT DEFAULT 'province', -- IP 属地显示精度
+  max_comment_length INTEGER DEFAULT 500,   -- 评论长度限制
+  sync_interval_minutes INTEGER DEFAULT 60, -- 邮件同步频率（分钟）
+  last_sync_at DATETIME,                 -- 上次同步时间
+  created_at DATETIME                    -- 注册时间（UTC+8）
+);
 
-// 点赞 API
-POST /comment/like
-POST /view (页面点赞)
+-- 域名白名单表：CORS 域名授权
+CREATE TABLE allowed_domains (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pattern TEXT UNIQUE NOT NULL,          -- 域名模式：'example.com', '*.example.com'
+  created_at DATETIME
+);
+
+-- 评论表：核心数据存储
+CREATE TABLE comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  page_url TEXT NOT NULL,                -- 页面 URL（分区键）
+  nickname TEXT NOT NULL,                -- 评论者昵称
+  content TEXT NOT NULL,                 -- 评论内容
+  parent_id INTEGER DEFAULT NULL,        -- 父评论 ID（嵌套回复）
+  user_id INTEGER DEFAULT NULL,          -- 用户 ID（NULL 表示游客）
+  ip TEXT,                               -- 评论者 IP 地址
+  location TEXT,                         -- IP 属地（省份/城市）
+  likes INTEGER DEFAULT 0,               -- 点赞数
+  created_at DATETIME,                   -- 创建时间（UTC+8）
+  FOREIGN KEY(parent_id) REFERENCES comments(id),
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+-- 页面统计表的：浏览量与点赞数
+CREATE TABLE page_views (
+  page_url TEXT PRIMARY KEY,             -- 页面 URL
+  views INTEGER DEFAULT 0,               -- 累计浏览量
+  likes INTEGER DEFAULT 0,               -- 累计点赞数
+  updated_at DATETIME                    -- 最后更新时间
+);
 ```
 
-#### 安全机制
-- **域名验证**：基于白名单的域名授权机制
-- **请求频率限制**：防止恶意刷评论
-- **输入验证**：SQL注入防护和内容长度限制
+**索引优化策略：**
+```sql
+-- 为评论表创建索引，加速页面查询
+CREATE INDEX idx_comments_page_url ON comments(page_url);
+```
+
+#### 数据一致性与事务处理
+
+- **D1 事务支持**：利用 SQLite 的 ACID 特性，确保评论计数、嵌套关系的原子性操作
+- **时间同步机制**：全站强制使用北京时间 (UTC+8)，从数据库 `datetime('now', '+8 hours')` 到前端显示，彻底解决时区混乱
+- **外键约束**：通过 `FOREIGN KEY` 确保评论与用户、评论与评论之间的引用完整性
+
+#### API 设计规范
+
+```typescript
+// 获取评论（支持分页）
+GET /comments?url={page_url}&page={page}&limit={limit}
+Response: {
+  comments: Comment[],
+  total: number,
+  page: number,
+  totalPages: number
+}
+
+// 提交评论
+POST /comments
+Body: {
+  page_url: string,
+  nickname: string,
+  content: string,
+  hcaptcha_token: string,
+  parent_id: number | null
+}
+
+// 评论点赞
+POST /comment/like
+Body: { id: number }
+
+// 页面浏览量和点赞
+POST /view
+Body: { url: string }
+```
+
+#### 安全机制实现
+
+- **域名验证中间件**：基于 `allowed_domains` 表的白名单验证，支持通配符匹配
+- **请求频率限制**：基于 IP 的频率控制，防止恶意刷评论
+- **输入验证与过滤**：SQL 注入防护、XSS 过滤、内容长度限制
+- **JWT Token 认证**：管理员后台和注册用户登录态管理
 
 ### 前端架构 (Vanilla JS SDK)
 
-#### 零依赖设计
-- **纯 JavaScript**：不使用任何前端框架，确保 SDK 体积最小化
-- **按需加载**：仅在需要时初始化 hCaptcha 等第三方组件
-- **Shadow DOM 风格**：通过独立的 CSS 命名空间防止与原站样式冲突
+#### 零依赖设计理念
 
-#### 评论渲染逻辑
+- **纯 JavaScript 实现**：不使用任何框架，SDK 体积 < 50KB（压缩后）
+- **渐进式加载**：hCaptcha、字体等第三方资源仅在需要时加载
+- **CSS 命名空间**：通过独立的样式前缀防止与原站样式冲突
+- **Shadow DOM 风格隔离**：模拟 Shadow DOM 的样式隔离效果
+
+#### 评论渲染引擎
+
 ```javascript
-// 评论排序：根评论按时间降序，回复按时间升序
-const rootComments = allComments.filter(c => !c.parent_id).sort((a, b) => 
-  b.created_at.localeCompare(a.created_at)
-);
-const replies = allComments.filter(c => c.parent_id).sort((a, b) =>
-  a.created_at.localeCompare(b.created_at)
-);
+// 双排序策略：根评论降序（最新在前），回复升序（时间线）
+const rootComments = allComments
+  .filter(c => !c.parent_id)
+  .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+const replies = allComments
+  .filter(c => c.parent_id)
+  .sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+// 滚动触发动画：Intersection Observer API
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('animate-in');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3, rootMargin: '0px 0px -100px 0px' });
 ```
 
-#### 分页实现
-- **后端分页**：数据库层面实现 LIMIT/OFFSET 分页
-- **前端渲染**：动态生成分页控件，支持平滑滚动
-- **楼层计算**：基于总评论数和当前页码智能计算楼层号
+#### 分页与性能优化
+
+- **后端 LIMIT/OFFSET 分页**：数据库层面减少数据传输量
+- **前端虚拟滚动**：动态渲染可见区域的评论项
+- **懒加载策略**：图片、表情等资源延迟加载
+- **防抖节流**：点赞、提交等操作的防抖处理
 
 ### 邮件通知系统
 
-#### 异步处理
-- **Cloudflare Cron Triggers**：基于定时任务实现异步汇总逻辑
-- **邮件模板**：支持 HTML 格式的邮件模板，包含评论摘要和统计信息
+#### 异步任务架构
 
-#### 配置选项
+- **Cron Triggers 定时任务**：`* * * * *` 每分钟检查待同步评论
+- **批量处理**：一次性汇总 `sync_interval_minutes` 内的所有评论
+- **HTML 邮件模板**：响应式设计，包含评论摘要、统计图表、管理链接
+
+#### 配置参数详解
+
 ```sql
--- 管理员可配置同步频率
-sync_interval_minutes INTEGER DEFAULT 60
-
--- 评论内容长度限制
-max_comment_length INTEGER DEFAULT 500
+-- 管理员可配置的同步参数
+sync_interval_minutes INTEGER DEFAULT 60  -- 0=禁用，>0=启用
+max_comment_length INTEGER DEFAULT 500    -- 单条评论最大长度
+ip_display_level TEXT DEFAULT 'province'  -- 'province' 或 'city'
 ```
 
 ### 性能优化策略
 
 #### 边缘计算优势
-- **全球分发**：评论数据在离用户最近的节点处理
-- **低延迟**：基于 Cloudflare 全球网络，实现毫秒级响应
-- **零冷启动**：V8 引擎的 Workers 启动速度远超传统容器化方案
 
-#### 缓存策略
-- **页面视图缓存**：页面浏览量和点赞数使用内存缓存
-- **评论数据优化**：分页查询减少数据传输量
+- **全球 275+ 节点分发**：评论数据在离用户最近的 Cloudflare 节点处理
+- **V8 Isolates 架构**：毫秒级冷启动，零等待响应
+- **无状态设计**：Workers 无状态特性确保水平扩展能力
+
+#### 多级缓存策略
+
+```typescript
+// 内存缓存：页面统计数据
+const cache = new Map<string, { views: number, likes: number }>();
+
+// D1 数据库：持久化评论数据
+const comments = await env.DB.prepare(
+  "SELECT * FROM comments WHERE page_url = ? LIMIT ? OFFSET ?"
+).bind(pageUrl, limit, offset).all();
+
+// 本地存储：用户登录态
+localStorage.setItem('extalk_user', JSON.stringify(userData));
+```
+
+#### 网络优化
+
+- **HTTP/2 多路复用**：减少连接建立开销
+- **资源压缩**：Gzip/Brotli 压缩，SDK 体积减少 70%
+- **CDN 加速**：静态资源通过 Cloudflare CDN 全球分发
 
 ---
 
