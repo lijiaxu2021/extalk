@@ -353,6 +353,159 @@ export default {
       border-color: #0070f3;
       background: white;
     }
+    /* B 站风格输入框容器 */
+    .bili-input-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      padding: 20px;
+      background: #f6f7f8;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .bili-input-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .bili-input-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .bili-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00aeec, #0070f3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .bili-avatar:hover {
+      transform: scale(1.1);
+    }
+    .bili-input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+    .bili-textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 12px 16px;
+      border: 2px solid #e3e5e7;
+      border-radius: 8px;
+      font-size: 14px;
+      resize: none;
+      transition: all 0.3s;
+      box-sizing: border-box;
+      outline: none;
+      font-family: inherit;
+    }
+    .bili-textarea:focus {
+      border-color: #00aeec;
+      background: white;
+    }
+    .bili-textarea.expanded {
+      min-height: 150px;
+    }
+    .bili-input-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .bili-user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bili-username {
+      font-size: 14px;
+      color: #18191c;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: white;
+      transition: all 0.2s;
+    }
+    .bili-username:hover {
+      background: #e3e5e7;
+    }
+    .bili-username.unset {
+      color: #949ba4;
+      background: transparent;
+    }
+    .bili-login-btn {
+      font-size: 13px;
+      color: #00aeec;
+      background: white;
+      border: 1px solid #00aeec;
+      padding: 6px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .bili-login-btn:hover {
+      background: #00aeec;
+      color: white;
+    }
+    .bili-expand-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: #00aeec;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .bili-expand-btn:hover {
+      background: #0070f3;
+      transform: scale(1.05);
+    }
+    .bili-submit-btn {
+      min-width: 100px;
+      height: 40px;
+      border: none;
+      background: #00aeec;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .bili-submit-btn:hover {
+      background: #0070f3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 174, 236, 0.3);
+    }
+    .bili-submit-btn:disabled {
+      background: #a0cfff;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .bili-hcaptcha-wrapper {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+    }
     .submit-btn {
       background: #0070f3;
       color: white;
@@ -644,22 +797,31 @@ export default {
         <span>点击发送评论</span>
       </div>
       <div id="comment-form-container" class="comment-form">
-        <div class="form-title">
-          <div style="display:flex; align-items:center; gap:10px">
-            <span id="form-title">发表评论</span>
-            <span id="close-form" class="close-form-btn">收起</span>
+        <div class="bili-input-container">
+        <div class="bili-avatar" id="bili-avatar" title="点击设置昵称">未</div>
+        <div class="bili-input-left">
+          <div class="bili-input-wrapper">
+            <textarea id="comment-content" class="bili-textarea" placeholder="发一条友善的评论"></textarea>
           </div>
-          <span class="auth-btn" id="auth-status-btn">登录/注册</span>
+          <div class="bili-input-actions">
+            <div class="bili-user-info">
+              <span class="bili-username unset" id="bili-username">未登录</span>
+              <button class="bili-login-btn" id="bili-login-btn">登录/注册</button>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="bili-expand-btn" id="bili-expand-btn" title="放大输入框">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                </svg>
+              </button>
+              <button class="bili-submit-btn" id="submit-comment">发布</button>
+            </div>
+          </div>
+          <div class="bili-hcaptcha-wrapper">
+            <div id="hcaptcha-container"></div>
+          </div>
         </div>
-        <div id="reply-info"></div>
-        <div class="input-group">
-          <input type="text" id="comment-nickname" class="comment-input" placeholder="您的昵称" required />
-        </div>
-        <div class="input-group">
-          <textarea id="comment-content" class="comment-input" style="height: 120px; resize: vertical;" placeholder="写下你的想法..." required></textarea>
-        </div>
-        <div id="hcaptcha-container" style="margin-bottom: 15px;"></div>
-        <button id="submit-comment" class="submit-btn">发布评论</button>
+      </div>
       </div>
       <div id="comments-list">正在加载评论...</div>
       <div id="pagination-container" class="pagination"></div>
@@ -708,6 +870,52 @@ export default {
         authHcaptchaWidgetId = window.hcaptcha.render('auth-hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
       }
     };
+
+    // B 站风格事件处理
+    // 放大输入框
+    document.getElementById('bili-expand-btn').onclick = () => {
+      const textarea = document.getElementById('comment-content');
+      textarea.classList.toggle('expanded');
+    };
+
+    // 点击头像设置昵称
+    document.getElementById('bili-avatar').onclick = () => {
+      if (currentUser) {
+        // 已登录，显示用户信息
+        alert('当前用户：' + currentUser.nickname + '\n邮箱：' + currentUser.email);
+      } else {
+        // 未登录，打开登录/注册界面
+        openAuthModal();
+      }
+    };
+
+    // 登录/注册按钮
+    document.getElementById('bili-login-btn').onclick = () => {
+      openAuthModal();
+    };
+
+    // 更新用户信息 UI
+    function updateBiliUserInfo() {
+      const avatar = document.getElementById('bili-avatar');
+      const username = document.getElementById('bili-username');
+      const loginBtn = document.getElementById('bili-login-btn');
+      
+      if (currentUser) {
+        // 已登录
+        avatar.textContent = currentUser.nickname.charAt(0).toUpperCase();
+        avatar.title = currentUser.nickname;
+        username.textContent = currentUser.nickname;
+        username.classList.remove('unset');
+        loginBtn.style.display = 'none';
+      } else {
+        // 未登录
+        avatar.textContent = '未';
+        avatar.title = '点击设置昵称';
+        username.textContent = '未登录';
+        username.classList.add('unset');
+        loginBtn.style.display = 'block';
+      }
+    }
 
     document.getElementById('form-toggle').onclick = () => {
       const form = document.getElementById('comment-form-container');
@@ -1452,7 +1660,12 @@ export default {
   async function submitComment() {
     const contentInput = document.getElementById('comment-content');
     const content = contentInput.value.trim();
-    const nickname = document.getElementById('comment-nickname').value.trim();
+    
+    // 检查是否登录
+    if (!currentUser) {
+      openAuthModal();
+      return;
+    }
     
     let hcaptchaToken = null;
     if (window.hcaptcha && hcaptchaWidgetId !== null) {
@@ -1461,7 +1674,7 @@ export default {
       hcaptchaToken = document.querySelector('[name="h-captcha-response"]')?.value;
     }
     
-    if (!content || !nickname || !hcaptchaToken) return alert('请填写完整昵称、内容并完成人机验证');
+    if (!content || !hcaptchaToken) return alert('请填写评论内容并完成人机验证');
     if (content.length > maxCommentLength) return alert(\`评论内容过长，不能超过 \${maxCommentLength} 个字符\`);
     const submitBtn = document.getElementById('submit-comment');
     submitBtn.disabled = true; submitBtn.innerText = '正在发布...';
@@ -1474,7 +1687,8 @@ export default {
         },
         body: JSON.stringify({
           page_url: window.location.pathname,
-          nickname, content, hcaptcha_token: hcaptchaToken, parent_id: replyingTo
+          nickname: currentUser.nickname,
+          content, hcaptcha_token: hcaptchaToken, parent_id: replyingTo
         })
       });
       
@@ -1484,6 +1698,12 @@ export default {
         if (window.hcaptcha && hcaptchaWidgetId !== null) {
           window.hcaptcha.reset(hcaptchaWidgetId);
         }
+        // 重置分页状态，重新加载第一页
+        currentPage = 1;
+        hasMorePages = true;
+        // 清空评论列表，重新加载
+        const listContainer = document.getElementById('comments-list');
+        listContainer.innerHTML = '';
         loadComments();
       } else { 
         const errorText = await res.text();
@@ -1493,7 +1713,7 @@ export default {
       console.error('Submit error:', err);
       alert('网络请求出错，请稍后重试'); 
     }
-    finally { submitBtn.disabled = false; submitBtn.innerText = '发布评论'; }
+    finally { submitBtn.disabled = false; submitBtn.innerText = '发布'; }
   }
 
   function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
