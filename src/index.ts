@@ -267,121 +267,35 @@ export default {
       margin: 20px auto;
     }
     .comment-form {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      border: 1px solid #e5e7eb;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      padding: 0;
+      margin-bottom: 30px;
+      display: none; /* Collapsed by default */
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      max-height: 0;
+      overflow: hidden;
     }
-    .form-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 15px;
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .avatar-placeholder {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-    }
-    .nickname-display {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #1f2937;
-    }
-    .form-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .expand-btn {
-      padding: 6px 10px;
-      background: #f3f4f6;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      color: #6b7280;
-      transition: all 0.2s;
-    }
-    .expand-btn:hover {
-      background: #e5e7eb;
-      color: #374151;
-    }
-    .input-row {
-      display: flex;
-      gap: 12px;
-      align-items: flex-end;
-    }
-    .input-wrapper {
-      flex: 1;
-    }
-    .comment-input {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      outline: none;
-      transition: all 0.2s;
-      font-family: inherit;
-      resize: none;
-      min-height: 44px;
-      max-height: 200px;
-    }
-    .comment-input:focus {
-      border-color: #0070f3;
-      box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
-    }
-    .submit-comment-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 12px 24px;
-      background: #0070f3;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .submit-comment-btn:hover {
-      background: #0056cc;
-      transform: translateY(-1px);
-    }
-    .submit-comment-btn:active {
-      transform: translateY(0);
-    }
-    .captcha-container {
-      margin-top: 15px;
-      display: flex;
-      justify-content: center;
-    }
-    .reply-info {
-      padding: 10px 15px;
-      background: #f0f9ff;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      font-size: 0.9rem;
-      color: #0369a1;
-      display: none;
-    }
-    .reply-info.show {
+    .comment-form.expanded {
       display: block;
+      opacity: 1;
+      transform: translateY(0);
+      max-height: 500px;
+    }
+    .form-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #0070f3;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 20px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(0, 112, 243, 0.05);
+      width: fit-content;
+      transition: all 0.2s;
     }
     .form-toggle-btn:hover {
       background: rgba(0, 112, 243, 0.1);
@@ -730,31 +644,22 @@ export default {
         <span>点击发送评论</span>
       </div>
       <div id="comment-form-container" class="comment-form">
-        <div class="form-header">
-          <div class="user-info">
-            <div class="avatar-placeholder" id="user-avatar">
-              <svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-            </div>
-            <span class="nickname-display" id="nickname-display">未登录</span>
+        <div class="form-title">
+          <div style="display:flex; align-items:center; gap:10px">
+            <span id="form-title">发表评论</span>
+            <span id="close-form" class="close-form-btn">收起</span>
           </div>
-          <div class="form-actions">
-            <button class="expand-btn" id="expand-btn" title="放大输入框">
-              <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
-            </button>
-            <button class="auth-btn" id="auth-status-btn">登录/注册</button>
-          </div>
+          <span class="auth-btn" id="auth-status-btn">登录/注册</span>
         </div>
-        <div id="reply-info" class="reply-info"></div>
-        <div class="input-row">
-          <div class="input-wrapper">
-            <textarea id="comment-content" class="comment-input" placeholder="请输入评论..." rows="1"></textarea>
-          </div>
-          <button class="submit-comment-btn" id="submit-comment">
-            <svg style="width:20px;height:20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-            <span>发布</span>
-          </button>
+        <div id="reply-info"></div>
+        <div class="input-group">
+          <input type="text" id="comment-nickname" class="comment-input" placeholder="您的昵称" required />
         </div>
-        <div id="hcaptcha-container" class="captcha-container"></div>
+        <div class="input-group">
+          <textarea id="comment-content" class="comment-input" style="height: 120px; resize: vertical;" placeholder="写下你的想法..." required></textarea>
+        </div>
+        <div id="hcaptcha-container" style="margin-bottom: 15px;"></div>
+        <button id="submit-comment" class="submit-btn">发布评论</button>
       </div>
       <div id="comments-list">正在加载评论...</div>
       <div id="pagination-container" class="pagination"></div>
@@ -804,33 +709,29 @@ export default {
       }
     };
 
-    // 初始化用户状态
-    updateAuthUI();
-    
-    // 放大/收起输入框
-    let isExpanded = false;
-    document.getElementById('expand-btn').onclick = () => {
-      const textarea = document.getElementById('comment-content');
-      if (!isExpanded) {
-        // 放大
-        textarea.style.height = '200px';
-        document.getElementById('expand-btn').style.color = '#0070f3';
-      } else {
-        // 收起
-        textarea.style.height = '44px';
-        document.getElementById('expand-btn').style.color = '#6b7280';
-      }
-      isExpanded = !isExpanded;
+    document.getElementById('form-toggle').onclick = () => {
+      const form = document.getElementById('comment-form-container');
+      form.classList.add('expanded');
+      document.getElementById('form-toggle').style.display = 'none';
+      
+      // 延迟触发动画
+      setTimeout(() => {
+        form.style.display = 'block';
+      }, 10);
     };
-    
-    // 自动调整 textarea 高度
-    const textarea = document.getElementById('comment-content');
-    textarea.addEventListener('input', function() {
-      this.style.height = 'auto';
-      const newHeight = Math.min(this.scrollHeight, 200);
-      this.style.height = newHeight + 'px';
-    });
-    
+
+    document.getElementById('close-form').onclick = () => {
+      const form = document.getElementById('comment-form-container');
+      form.classList.remove('expanded');
+      
+      // 等待动画完成后隐藏
+      setTimeout(() => {
+        form.style.display = 'none';
+        document.getElementById('form-toggle').style.display = 'flex';
+        window.cancelReply();
+      }, 400);
+    };
+
     document.getElementById('submit-comment').onclick = submitComment;
     document.getElementById('auth-status-btn').onclick = () => {
       if (currentUser) {
@@ -1551,14 +1452,7 @@ export default {
   async function submitComment() {
     const contentInput = document.getElementById('comment-content');
     const content = contentInput.value.trim();
-    
-    // 检查是否登录
-    if (!currentUser) {
-      alert('请先登录或注册后发表评论');
-      document.getElementById('auth-modal').style.display = 'block';
-      resetAuthModal();
-      return;
-    }
+    const nickname = document.getElementById('comment-nickname').value.trim();
     
     let hcaptchaToken = null;
     if (window.hcaptcha && hcaptchaWidgetId !== null) {
@@ -1567,25 +1461,20 @@ export default {
       hcaptchaToken = document.querySelector('[name="h-captcha-response"]')?.value;
     }
     
-    if (!content || !hcaptchaToken) return alert('请填写评论内容并完成人机验证');
-    if (content.length > maxCommentLength) return alert('评论内容过长，不能超过 ' + maxCommentLength + ' 个字符');
-    
+    if (!content || !nickname || !hcaptchaToken) return alert('请填写完整昵称、内容并完成人机验证');
+    if (content.length > maxCommentLength) return alert(\`评论内容过长，不能超过 \${maxCommentLength} 个字符\`);
     const submitBtn = document.getElementById('submit-comment');
     submitBtn.disabled = true; submitBtn.innerText = '正在发布...';
-    
     try {
       const res = await fetch(\`\${API_ENDPOINT}/comments\`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': \`Bearer \${currentUser.token}\`
+          'Authorization': currentUser ? \`Bearer \${currentUser.token}\` : ''
         },
         body: JSON.stringify({
           page_url: window.location.pathname,
-          nickname: currentUser.nickname,
-          content,
-          hcaptcha_token: hcaptchaToken,
-          parent_id: replyingTo
+          nickname, content, hcaptcha_token: hcaptchaToken, parent_id: replyingTo
         })
       });
       
@@ -1595,11 +1484,31 @@ export default {
         if (window.hcaptcha && hcaptchaWidgetId !== null) {
           window.hcaptcha.reset(hcaptchaWidgetId);
         }
-        // 重置 textarea 高度
-        contentInput.style.height = 'auto';
-        // 重新加载第一页评论，显示最新评论
+        // 重置到第一页并重新加载所有评论
         currentPage = 1;
-        await loadComments();
+        hasMorePages = true;
+        totalPages = 1;
+        infiniteScrollInitialized = false; // 重置无限滚动初始化标志
+        
+        // 清理旧的观察者
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
+        
+        // 移除 sentinel 元素
+        const oldSentinel = document.getElementById('sentinel');
+        if (oldSentinel) {
+          oldSentinel.remove();
+        }
+        
+        // 移除加载状态提示
+        const oldLoading = document.getElementById('infinite-loading');
+        if (oldLoading) {
+          oldLoading.remove();
+        }
+        
+        loadComments();
       } else { 
         const errorText = await res.text();
         alert('提交失败：' + errorText); 
@@ -1608,7 +1517,7 @@ export default {
       console.error('Submit error:', err);
       alert('网络请求出错，请稍后重试'); 
     }
-    finally { submitBtn.disabled = false; submitBtn.innerText = '发布'; }
+    finally { submitBtn.disabled = false; submitBtn.innerText = '发布评论'; }
   }
 
   function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
