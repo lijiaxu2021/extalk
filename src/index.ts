@@ -940,37 +940,40 @@ export default {
       renderPagination(total);
       
       // 添加滚动监听动画 - 一次只有一个评论项滑出，从上到下依次渲染
-      setTimeout(() => {
-        const commentItems = Array.from(listContainer.querySelectorAll('.comment-item'));
-        let currentIndex = 0;
-        
-        const observer = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting && currentIndex < commentItems.length) {
-              // 只触发当前索引的评论项动画
-              const currentItem = commentItems[currentIndex];
-              if (currentItem && currentItem === entry.target) {
-                currentItem.classList.add('animate-in');
-                currentIndex++;
-                observer.unobserve(currentItem);
-                
-                // 观察下一个评论项
-                if (currentIndex < commentItems.length) {
-                  observer.observe(commentItems[currentIndex]);
+      // 无限滚动模式除外，它的动画在 loadNextPage 中处理
+      if (currentLoadMode !== 'infinite') {
+        setTimeout(() => {
+          const commentItems = Array.from(listContainer.querySelectorAll('.comment-item'));
+          let currentIndex = 0;
+          
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting && currentIndex < commentItems.length) {
+                // 只触发当前索引的评论项动画
+                const currentItem = commentItems[currentIndex];
+                if (currentItem && currentItem === entry.target) {
+                  currentItem.classList.add('animate-in');
+                  currentIndex++;
+                  observer.unobserve(currentItem);
+                  
+                  // 观察下一个评论项
+                  if (currentIndex < commentItems.length) {
+                    observer.observe(commentItems[currentIndex]);
+                  }
                 }
               }
-            }
+            });
+          }, {
+            threshold: 0.3,
+            rootMargin: '0px 0px -100px 0px'
           });
-        }, {
-          threshold: 0.3,
-          rootMargin: '0px 0px -100px 0px'
-        });
-        
-        // 从第一个评论项开始观察
-        if (commentItems.length > 0) {
-          observer.observe(commentItems[0]);
-        }
-      }, 100);
+          
+          // 从第一个评论项开始观察
+          if (commentItems.length > 0) {
+            observer.observe(commentItems[0]);
+          }
+        }, 100);
+      }
     } catch (err) { console.error(err); }
   }
 
@@ -1108,14 +1111,55 @@ export default {
       const newHtml = rootComments.map(c => renderComment(c)).join('');
       listContainer.insertAdjacentHTML('beforeend', newHtml);
       
-      // 新评论的滚动动画
-      setTimeout(() => {
-        const newItems = listContainer.querySelectorAll('.comment-item');
-        const startIndex = newItems.length - rootComments.length;
-        for (let i = startIndex; i < newItems.length; i++) {
-          newItems[i].classList.add('animate-in');
-        }
-      }, 100);
+      // 新评论的滚动动画 - 无限滚动模式下逐个显示
+      if (currentLoadMode === 'infinite') {
+        setTimeout(() => {
+          const allItems = listContainer.querySelectorAll('.comment-item');
+          const startIndex = allItems.length - rootComments.length;
+          
+          // 只对新加载的评论应用动画
+          for (let i = startIndex; i < allItems.length; i++) {
+            allItems[i].classList.remove('animate-in');
+          }
+          
+          // 使用 Intersection Observer 逐个触发动画
+          let currentIndex = startIndex;
+          const infiniteObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting && currentIndex < allItems.length) {
+                const currentItem = allItems[currentIndex];
+                if (currentItem === entry.target) {
+                  currentItem.classList.add('animate-in');
+                  currentIndex++;
+                  infiniteObserver.unobserve(currentItem);
+                  
+                  // 观察下一个评论项
+                  if (currentIndex < allItems.length) {
+                    infiniteObserver.observe(allItems[currentIndex]);
+                  }
+                }
+              }
+            });
+          }, {
+            threshold: 0.3,
+            rootMargin: '0px 0px -100px 0px'
+          });
+          
+          // 从第一个新评论项开始观察
+          if (currentIndex < allItems.length) {
+            infiniteObserver.observe(allItems[currentIndex]);
+          }
+        }, 100);
+      } else {
+        // 其他模式保持原有动画逻辑
+        setTimeout(() => {
+          const newItems = listContainer.querySelectorAll('.comment-item');
+          const startIndex = newItems.length - rootComments.length;
+          for (let i = startIndex; i < newItems.length; i++) {
+            newItems[i].classList.add('animate-in');
+          }
+        }, 100);
+      }
       
       hasMorePages = currentPage < totalPages;
       
