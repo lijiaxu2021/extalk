@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExTalk 管理后台</title>
+  <style>
+    :root {
+      --primary: #0070f3;
+      --primary-dark: #0056cc;
+      --success: #48bb78;
+      --danger: #f56565;
+      --warning: #ed8936;
+      --bg: #f7fafc;
+      --card: #ffffff;
+      --text: #1a202c;
+      --text-light: #718096;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    
+    /* 登录界面 */
+    .login-container {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .login-box {
+      background: white; padding: 48px; border-radius: 20px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.15); width: 100%; max-width: 450px;
+    }
+    .login-header { text-align: center; margin-bottom: 32px; }
+    .login-logo {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; font-size: 32px;
+    }
+    .login-title { font-size: 28px; font-weight: 700; color: #1a202c; margin-bottom: 8px; }
+    .login-subtitle { color: #718096; font-size: 14px; }
+    .form-group { margin-bottom: 24px; }
+    .form-label { display: block; margin-bottom: 8px; color: #2d3748; font-size: 14px; font-weight: 600; }
+    .form-input {
+      width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px;
+      font-size: 15px; outline: none; transition: all 0.2s; box-sizing: border-box;
+    }
+    .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,112,243,0.1); }
+    .captcha-container { display: flex; justify-content: center; margin: 24px 0; padding: 16px; background: #f7fafc; border-radius: 10px; }
+    .login-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 6px rgba(102,126,234,0.3);
+    }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(102,126,234,0.4); }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    
+    /* 管理后台 */
+    .admin-layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 260px; background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+      color: white; position: fixed; height: 100vh; overflow-y: auto; padding: 24px; box-sizing: border-box;
+    }
+    .sidebar-header {
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .sidebar-title { font-size: 20px; font-weight: 700; }
+    .nav-section { margin-bottom: 24px; }
+    .nav-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #a0aec0; margin-bottom: 12px; font-weight: 600; }
+    .nav-item {
+      padding: 12px 16px; margin-bottom: 4px; cursor: pointer; border-radius: 8px;
+      transition: all 0.2s; display: flex; align-items: center; gap: 12px; font-size: 14px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.1); }
+    .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 6px rgba(0,112,243,0.3); }
+    .nav-icon { width: 20px; text-align: center; }
+    .main-content { margin-left: 260px; flex: 1; padding: 32px 40px; }
+    .page-header { margin-bottom: 32px; }
+    .page-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .page-subtitle { color: var(--text-light); font-size: 14px; }
+    .card { background: var(--card); border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
+    .card-title { font-size: 18px; font-weight: 600; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; }
+    .stat-value { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
+    .stat-label { font-size: 14px; opacity: 0.9; }
+    .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-input { padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: all 0.2s; }
+    .filter-input:focus { border-color: var(--primary); }
+    .filter-select { padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: white; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; }
+    .table-container { overflow-x: auto; }
+    th, td { padding: 14px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; }
+    th { background: #f7fafc; font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+    tr:hover { background: #f7fafc; }
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { opacity: 0.9; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .url-badge { display: inline-block; padding: 4px 10px; background: #edf2f7; border-radius: 6px; font-size: 12px; color: #4a5568; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    .url-badge:hover { background: #e2e8f0; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .tag-blue { background: #bee3f8; color: #2c5282; }
+    .tag-green { background: #c6f6d5; color: #22543d; }
+    .tag-gray { background: #e2e8f0; color: #4a5568; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-details { display: flex; flex-direction: column; }
+    .user-name { font-weight: 600; }
+    .user-email { font-size: 12px; color: var(--text-light); }
+    .action-buttons { display: flex; gap: 8px; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
+    .empty-state-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
+    .loading { text-align: center; padding: 40px; color: var(--text-light); }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  
+  <script>
+    const API = window.location.origin;
+    const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
+    let token = localStorage.getItem('extalk_admin_token');
+    let currentTab = 'comments';
+    let data = { comments: [], domains: [], users: [], settings: {} };
+    let filters = { comment: '', url: 'all' };
+    let hcaptchaWidgetId = null;
+
+    if (!token) {
+      showLoginModal();
+    } else {
+      init();
+    }
+
+    function showLoginModal() {
+      const container = document.createElement('div');
+      container.className = 'login-container';
+      container.innerHTML = `
+        <div class="login-box">
+          <div class="login-header">
+            <div class="login-logo">💬</div>
+            <h1 class="login-title">ExTalk 管理员登录</h1>
+            <p class="login-subtitle">专业的评论系统管理后台</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">邮箱</label>
+            <input type="email" id="admin-email" class="form-input" placeholder="请输入管理员邮箱">
+          </div>
+          <div class="form-group">
+            <label class="form-label">密码</label>
+            <input type="password" id="admin-password" class="form-input" placeholder="请输入密码">
+          </div>
+          <div class="captcha-container" id="hcaptcha-container"></div>
+          <button class="login-btn" id="login-btn" onclick="handleLogin()">登录</button>
+        </div>
+      `;
+      document.body.appendChild(container);
+      
+      const script = document.createElement('script');
+      script.src = 'https://js.hcaptcha.com/1/api.js';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+      
+      script.onload = () => {
+        if (window.hcaptcha) {
+          hcaptchaWidgetId = window.hcaptcha.render('hcaptcha-container', { 
+            sitekey: HCAPTCHA_SITE_KEY,
+            theme: 'light'
+          });
+        }
+      };
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value.trim();
+      
+      if (!email || !password) {
+        alert('请输入邮箱和密码');
+        return;
+      }
+      
+      const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(hcaptchaWidgetId) : null;
+      if (!hcaptchaToken) {
+        alert('请先完成人机验证');
+        return;
+      }
+      
+      const loginBtn = document.getElementById('login-btn');
+      loginBtn.textContent = '登录中...';
+      loginBtn.disabled = true;
+      
+      try {
+        const res = await fetch(API + '/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password, hcaptcha_token: hcaptchaToken }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        
+        if (res.ok && data.token && data.role === 'admin') {
+          token = data.token;
+          localStorage.setItem('extalk_admin_token', token);
+          location.reload();
+        } else {
+          alert(data.error || '登录失败');
+          if (window.hcaptcha) window.hcaptcha.reset(hcaptchaWidgetId);
+        }
+      } catch (err) {
+        alert('网络错误，请重试');
+      } finally {
+        loginBtn.textContent = '登录';
+        loginBtn.disabled = false;
+      }
+    }
+
+    async function req(path, method='GET', body=null) {
+      const res = await fetch(API + path, {
+        method,
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : null
+      });
+      return res.json();
+    }
+
+    async function init() {
+      await loadAll();
+      render();
+    }
+
+    async function loadAll() {
+      [data.comments, data.domains, data.users, data.settings] = await Promise.all([
+        req('/admin/comments'),
+        req('/admin/domains'),
+        req('/admin/users'),
+        req('/admin/settings').catch(() => ({}))
+      ]);
+    }
+
+    function showTab(tab, el) {
+      currentTab = tab;
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+      render();
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="admin-layout">
+          <div class="sidebar">
+            <div class="sidebar-header">
+              <div class="sidebar-logo">💬</div>
+              <div class="sidebar-title">ExTalk Admin</div>
+            </div>
+            <div class="nav-section">
+              <div class="nav-section-title">管理</div>
+              <div class="nav-item ${currentTab === 'comments' ? 'active' : ''}" onclick="showTab('comments', this)">
+                <span class="nav-icon">💬</span>
+                <span>评论管理</span>
+              </div>
+              <div class="nav-item ${currentTab === 'domains' ? 'active' : ''}" onclick="showTab('domains', this)">
+                <span class="nav-icon">🌐</span>
+                <span>域名/设置</span>
+              </div>
+              <div class="nav-item ${currentTab === 'users' ? 'active' : ''}" onclick="showTab('users', this)">
+                <span class="nav-icon">👥</span>
+                <span>用户管理</span>
+              </div>
+            </div>
+            <div class="nav-section">
+              <div class="nav-section-title">系统</div>
+              <div class="nav-item" onclick="logout()">
+                <span class="nav-icon">🚪</span>
+                <span>退出登录</span>
+              </div>
+            </div>
+          </div>
+          <div class="main-content">
+            <div class="page-header">
+              <h1 class="page-title">${getPageTitle()}</h1>
+              <p class="page-subtitle">${getPageSubtitle()}</p>
+            </div>
+            <div id="content"></div>
+          </div>
+        </div>
+      `;
+      
+      if (currentTab === 'comments') renderComments();
+      else if (currentTab === 'domains') renderDomains();
+      else if (currentTab === 'users') renderUsers();
+    }
+
+    function getPageTitle() {
+      const titles = {
+        comments: '评论管理',
+        domains: '域名与设置',
+        users: '用户管理'
+      };
+      return titles[currentTab] || '管理后台';
+    }
+
+    function getPageSubtitle() {
+      const subtitles = {
+        comments: '管理所有评论，支持按 URL 筛选',
+        domains: '配置允许的域名和系统参数',
+        users: '管理用户账户和权限'
+      };
+      return subtitles[currentTab] || '';
+    }
+
+    function renderComments() {
+      const content = document.getElementById('content');
+      
+      // 按 URL 分组
+      const urlGroups = {};
+      data.comments.forEach(c => {
+        if (!urlGroups[c.page_url]) urlGroups[c.page_url] = [];
+        urlGroups[c.page_url].push(c);
+      });
+      const urls = Object.keys(urlGroups);
+      
+      // 筛选
+      let filtered = data.comments;
+      if (filters.url !== 'all') {
+        filtered = filtered.filter(c => c.page_url === filters.url);
+      }
+      if (filters.comment) {
+        const keyword = filters.comment.toLowerCase();
+        filtered = filtered.filter(c => 
+          c.nickname.toLowerCase().includes(keyword) || 
+          c.content.toLowerCase().includes(keyword)
+        );
+      }
+      
+      content.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${data.comments.length}</div>
+            <div class="stat-label">总评论数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${urls.length}</div>
+            <div class="stat-label">页面数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${data.comments.filter(c => c.parent_id === null).length}</div>
+            <div class="stat-label">根评论</div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">评论列表</h3>
+          </div>
+          <div class="filters">
+            <select class="filter-select" onchange="filters.url=this.value; renderComments()">
+              <option value="all">全部页面</option>
+              ${urls.map(url => `<option value="${url}" ${filters.url === url ? 'selected' : ''}>${url}</option>`).join('')}
+            </select>
+            <input type="text" class="filter-input" placeholder="搜索评论..." value="${filters.comment}" 
+                   oninput="filters.comment=this.value; renderComments()">
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>用户</th>
+                  <th>内容</th>
+                  <th>URL</th>
+                  <th>时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.length === 0 ? `
+                  <tr>
+                    <td colspan="5" class="empty-state">
+                      <div class="empty-state-icon">📭</div>
+                      <div>暂无评论</div>
+                    </td>
+                  </tr>
+                ` : filtered.map(c => `
+                  <tr>
+                    <td>
+                      <div class="user-info">
+                        <div class="avatar">${c.nickname[0].toUpperCase()}</div>
+                        <div class="user-details">
+                          <div class="user-name">${c.nickname}</div>
+                          ${c.location ? `<div class="user-email">${c.location}</div>` : ''}
+                        </div>
+                      </div>
+                    </td>
+                    <td style="max-width: 300px;">${c.content}</td>
+                    <td><span class="url-badge" title="${c.page_url}">${c.page_url}</span></td>
+                    <td>${new Date(c.created_at).toLocaleString('zh-CN')}</td>
+                    <td>
+                      <div class="action-buttons">
+                        <button class="btn btn-danger btn-sm" onclick="deleteComment(${c.id})">删除</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDomains() {
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">允许的域名</h3>
+            <button class="btn btn-primary" onclick="addDomain()">+ 添加域名</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>域名</th>
+                  <th>添加时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.domains.length === 0 ? `
+                  <tr>
+                    <td colspan="3" class="empty-state">
+                      <div class="empty-state-icon">🌐</div>
+                      <div>暂无允许的域名</div>
+                    </td>
+                  </tr>
+                ` : data.domains.map(d => `
+                  <tr>
+                    <td><code>${d.pattern}</code></td>
+                    <td>${new Date(d.created_at).toLocaleString('zh-CN')}</td>
+                    <td>
+                      <button class="btn btn-danger btn-sm" onclick="deleteDomain(${d.id})">删除</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">系统设置</h3>
+          </div>
+          <div class="form-group">
+            <label class="form-label">IP 属地显示精度</label>
+            <select class="filter-select" onchange="updateIpLevel(this.value)">
+              <option value="province" ${data.settings.ip_display_level === 'province' ? 'selected' : ''}>省份</option>
+              <option value="city" ${data.settings.ip_display_level === 'city' ? 'selected' : ''}>城市</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">评论最大长度</label>
+            <input type="number" class="filter-input" value="${data.settings.max_comment_length || 500}" 
+                   onchange="updateMaxLength(this.value)" style="width: 200px;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">邮件同步间隔（分钟）</label>
+            <input type="number" class="filter-input" value="${data.settings.sync_interval_minutes || 0}" 
+                   onchange="updateSyncInterval(this.value)" style="width: 200px;">
+            <p style="margin-top: 8px; color: var(--text-light); font-size: 13px;">设置为 0 表示禁用邮件通知</p>
+          </div>
+          <div class="form-group">
+            <button class="btn btn-primary" onclick="testSyncEmail()">发送测试邮件</button>
+            <span id="sync-test-status" style="margin-left: 12px;"></span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderUsers() {
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">用户列表</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>用户</th>
+                  <th>角色</th>
+                  <th>邮箱验证</th>
+                  <th>注册时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.users.length === 0 ? `
+                  <tr>
+                    <td colspan="4" class="empty-state">
+                      <div class="empty-state-icon">👥</div>
+                      <div>暂无用户</div>
+                    </td>
+                  </tr>
+                ` : data.users.map(u => `
+                  <tr>
+                    <td>
+                      <div class="user-info">
+                        <div class="avatar">${u.nickname[0].toUpperCase()}</div>
+                        <div class="user-details">
+                          <div class="user-name">${u.nickname}</div>
+                          <div class="user-email">${u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="tag ${u.role === 'admin' ? 'tag-blue' : 'tag-gray'}">${u.role}</span></td>
+                    <td><span class="tag ${u.verified ? 'tag-green' : 'tag-gray'}">${u.verified ? '已验证' : '未验证'}</span></td>
+                    <td>${new Date(u.created_at).toLocaleString('zh-CN')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function deleteComment(id) {
+      if (!confirm('确定要删除这条评论吗？')) return;
+      try {
+        await req('/admin/comments/' + id, 'DELETE');
+        await loadAll();
+        renderComments();
+      } catch (e) {
+        alert('删除失败');
+      }
+    }
+
+    async function addDomain() {
+      const pattern = prompt('请输入允许的域名（支持通配符，如：*.example.com）:');
+      if (!pattern) return;
+      try {
+        await req('/admin/domains', 'POST', { pattern });
+        await loadAll();
+        renderDomains();
+      } catch (e) {
+        alert('添加失败');
+      }
+    }
+
+    async function deleteDomain(id) {
+      if (!confirm('确定要删除这个域名吗？')) return;
+      try {
+        await req('/admin/domains/' + id, 'DELETE');
+        await loadAll();
+        renderDomains();
+      } catch (e) {
+        alert('删除失败');
+      }
+    }
+
+    async function updateIpLevel(level) {
+      try {
+        await req('/admin/settings/ip-level', 'POST', { level });
+        alert('设置已更新');
+      } catch (e) {
+        alert('更新失败');
+      }
+    }
+
+    async function updateMaxLength(length) {
+      try {
+        await req('/admin/settings/max-length', 'POST', { length: parseInt(length) });
+        alert('设置已更新');
+      } catch (e) {
+        alert('更新失败');
+      }
+    }
+
+    async function updateSyncInterval(interval) {
+      try {
+        await req('/admin/settings/sync-interval', 'POST', { interval: parseInt(interval) });
+        alert('设置已更新');
+      } catch (e) {
+        alert('更新失败');
+      }
+    }
+
+    async function testSyncEmail() {
+      const status = document.getElementById('sync-test-status');
+      status.innerText = '正在发送测试邮件...';
+      try {
+        const res = await req('/admin/settings/test-sync', 'POST');
+        if (res.success) {
+          status.innerText = '✅ 测试邮件已发送';
+          status.style.color = 'green';
+        } else {
+          status.innerText = '❌ 发送失败：' + (res.error || '未知错误');
+          status.style.color = 'red';
+        }
+      } catch (e) {
+        status.innerText = '❌ 请求出错';
+        status.style.color = 'red';
+      }
+    }
+
+    function logout() {
+      if (confirm('确定要退出登录吗？')) {
+        localStorage.removeItem('extalk_admin_token');
+        location.reload();
+      }
+    }
+  </script>
+</body>
+</html>
