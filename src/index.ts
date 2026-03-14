@@ -1014,16 +1014,26 @@ export default {
   }
 
   // 无限滚动加载
+  let infiniteScrollInitialized = false;
+  
   function setupInfiniteScroll() {
+    // 避免重复初始化
+    if (infiniteScrollInitialized) return;
+    infiniteScrollInitialized = true;
+    
     // 清理旧的观察者
     if (observer) {
       observer.disconnect();
     }
     
-    const sentinel = document.createElement('div');
-    sentinel.id = 'sentinel';
-    sentinel.style.cssText = 'height: 1px; width: 100%;';
-    document.getElementById('comments-list').appendChild(sentinel);
+    // 检查是否已经存在 sentinel
+    let sentinel = document.getElementById('sentinel');
+    if (!sentinel) {
+      sentinel = document.createElement('div');
+      sentinel.id = 'sentinel';
+      sentinel.style.cssText = 'height: 1px; width: 100%;';
+      document.getElementById('comments-list').appendChild(sentinel);
+    }
     
     observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && hasMorePages && !isLoading) {
