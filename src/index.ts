@@ -1114,7 +1114,7 @@ export default {
       });
     }, {
       root: null,
-      rootMargin: '50px',
+      rootMargin: '-100px',  // 提前 100px 标记为滑出
       threshold: 0
     });
     
