@@ -245,7 +245,8 @@ export default {
   let replyingTo = null;
   let currentUser = JSON.parse(localStorage.getItem('extalk_user') || 'null');
   let currentPage = 1;
-  const pageSize = 6;
+  const pageSize = 6;  // 基础页面大小
+  const infinitePageSize = 12;  // 无限滚动模式每次加载 2 页（12 条）
   let maxCommentLength = 500;
   let hcaptchaWidgetId = null;
   let authHcaptchaWidgetId = null;
@@ -896,7 +897,9 @@ export default {
     }).catch(() => {});
 
     try {
-      const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${pageSize}\`);
+      // 无限滚动模式下使用更大的页面大小
+      const limit = currentLoadMode === 'infinite' ? infinitePageSize : pageSize;
+      const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${limit}&loadMode=\${currentLoadMode}\`);
       const data = await response.json();
       const allComments = data.comments;
       const total = data.total;
@@ -1137,7 +1140,7 @@ export default {
       });
     }, {
       root: null,
-      rootMargin: '-100px',  // 提前 100px 标记为滑出
+      rootMargin: '-200px',  // 提前 200px 标记为滑出（更早触发）
       threshold: 0
     });
     
@@ -1179,7 +1182,9 @@ export default {
     
     try {
       const pageUrl = window.location.pathname;
-      const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${pageSize}\`);
+      // 无限滚动模式下使用更大的页面大小
+      const limit = currentLoadMode === 'infinite' ? infinitePageSize : pageSize;
+      const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${limit}&loadMode=\${currentLoadMode}\`);
       const data = await response.json();
       const newComments = data.comments;
       
@@ -2057,7 +2062,16 @@ export default {
       if (!pageUrl) return new Response("Missing url parameter", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
       
       const page = parseInt(url.searchParams.get("page") || "1");
-      const limit = parseInt(url.searchParams.get("limit") || "6");
+      let limit = parseInt(url.searchParams.get("limit") || "6");
+      
+      // 无限滚动模式下，第一页加载 2 页（12 条），后续每次也加载 2 页
+      const loadMode = url.searchParams.get("loadMode");
+      if (loadMode === 'infinite' && page === 1) {
+        limit = 12;  // 第一页加载 2 页
+      } else if (loadMode === 'infinite') {
+        limit = 12;  // 后续每次加载 2 页
+      }
+      
       const offset = (page - 1) * limit;
 
       // 使用 CTE 优化查询（5 次 → 3 次）
