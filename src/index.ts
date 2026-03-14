@@ -1035,14 +1035,40 @@ export default {
       observer.disconnect();
     }
     
-    // 检查是否已经存在 sentinel
-    let sentinel = document.getElementById('sentinel');
-    if (!sentinel) {
-      sentinel = document.createElement('div');
-      sentinel.id = 'sentinel';
-      sentinel.style.cssText = 'height: 1px; width: 100%;';
-      document.getElementById('comments-list').appendChild(sentinel);
+    // 移除旧的 sentinel 元素
+    const oldSentinel = document.getElementById('sentinel');
+    if (oldSentinel) {
+      oldSentinel.remove();
     }
+    
+    // 创建加载状态提示元素
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'infinite-loading';
+    loadingDiv.style.cssText = 'text-align: center; padding: 20px; color: #94a3b8; display: none;';
+    loadingDiv.innerHTML = '<p>加载中...</p>';
+    document.getElementById('comments-list').appendChild(loadingDiv);
+    
+    // 监听最后一个评论元素，而不是固定的 sentinel
+    observeLastComment();
+  }
+  
+  // 监听最后一个评论元素
+  function observeLastComment() {
+    if (observer) {
+      observer.disconnect();
+    }
+    
+    const listContainer = document.getElementById('comments-list');
+    const commentItems = listContainer.querySelectorAll('.comment-item');
+    
+    if (commentItems.length === 0) {
+      // 如果没有评论，设置定时器重试
+      setTimeout(() => observeLastComment(), 100);
+      return;
+    }
+    
+    // 监听最后一个评论元素
+    const lastComment = commentItems[commentItems.length - 1];
     
     observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && hasMorePages && !isLoading) {
@@ -1050,11 +1076,11 @@ export default {
       }
     }, {
       root: null,
-      rootMargin: '200px',
-      threshold: 0
+      rootMargin: '100px',
+      threshold: 0.1
     });
     
-    observer.observe(sentinel);
+    observer.observe(lastComment);
   }
 
   // 加载更多按钮模式
@@ -1077,6 +1103,12 @@ export default {
     isLoading = true;
     currentPage++;
     
+    // 显示加载状态
+    const loadingDiv = document.getElementById('infinite-loading');
+    if (loadingDiv) {
+      loadingDiv.style.display = 'block';
+    }
+    
     try {
       const pageUrl = window.location.pathname;
       const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${pageSize}\`);
@@ -1086,6 +1118,9 @@ export default {
       if (newComments.length === 0) {
         hasMorePages = false;
         isLoading = false;
+        if (loadingDiv) {
+          loadingDiv.style.display = 'none';
+        }
         return;
       }
       
@@ -1187,13 +1222,11 @@ export default {
         renderPagination(total);
       }
       
-      // 无限滚动模式下，重新设置观察器
+      // 无限滚动模式下，重新监听最后一个评论
       if (currentLoadMode === 'infinite' && hasMorePages) {
-        const sentinel = document.getElementById('sentinel');
-        if (sentinel) {
-          observer.unobserve(sentinel);
-          setTimeout(() => observer.observe(sentinel), 100);
-        }
+        setTimeout(() => {
+          observeLastComment();
+        }, 200);
       }
       
     } catch (err) {
@@ -1201,6 +1234,11 @@ export default {
       currentPage--; // 回滚页码
     } finally {
       isLoading = false;
+      // 隐藏加载状态
+      const loadingDiv = document.getElementById('infinite-loading');
+      if (loadingDiv) {
+        loadingDiv.style.display = 'none';
+      }
       if (currentLoadMode === 'loadmore') {
         const btn = document.getElementById('load-more-btn');
         if (btn) {
