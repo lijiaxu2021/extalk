@@ -388,47 +388,6 @@ https://your-worker.workers.dev/init-admin-999
 
 ### 6. 集成到博客
 
-在博客文章页面添加：
-
-```html
-<!-- 评论区容器 -->
-<div id="extalk-comments"></div>
-
-<!-- 加载 SDK -->
-<script src="https://your-worker.workers.dev/sdk.js"></script>
-
-<!-- 可选：指定加载模式 -->
-<script src="https://your-worker.workers.dev/sdk.js?mode=infinite"></script>
-```
-
-***
-
-## 📖 使用指南
-
-### 前端集成示例
-
-#### Hugo
-
-在 `layouts/_default/single.html` 中添加：
-
-```html
-{{ if .IsPage }}
-<div id="extalk-comments"></div>
-<script src="https://comment.upxuu.com/sdk.js?mode=infinite"></script>
-{{ end }}
-```
-
-#### Hexo
-
-在 `themes/your-theme/layout/_partial/post.ejs` 中添加：
-
-```html
-<% if (post_layout === 'post') { %>
-  <div id="extalk-comments"></div>
-  <script src="https://comment.upxuu.com/sdk.js"></script>
-<% } %>
-```
-
 #### 静态 HTML
 
 ```html
@@ -450,49 +409,7 @@ https://your-worker.workers.dev/init-admin-999
 </html>
 ```
 
-#### VitePress
-
-为所有文档页面添加评论系统，有两种方案：
-
-**方案一：通过配置 head 脚本（推荐）**
-
-在 `.vitepress/config.js` 中添加：
-
-```js
-export default {
-  // ... 其他配置
-  themeConfig: {
-    // ... 其他配置
-    head: [
-      ['script', {}, `
-        window.addEventListener('load', () => {
-          setTimeout(() => {
-            const commentsDiv = document.createElement('div');
-            commentsDiv.id = 'extalk-comments';
-            commentsDiv.style.cssText = 'margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--vp-c-divider); max-width: 1152px; margin: 0 auto; padding: 40px 24px;';
-            commentsDiv.innerHTML = '<h2 style="font-size: 1.5rem; margin-bottom: 20px;">💬 评论</h2><div id="extalk-comments-inner" style="margin-top: 20px;"></div>';
-            
-            const vpContent = document.getElementById('VPContent');
-            if (vpContent) {
-              const footer = vpContent.querySelector('.VPFooter');
-              if (footer) {
-                footer.parentNode.insertBefore(commentsDiv, footer);
-              }
-              
-              const script = document.createElement('script');
-              script.src = 'https://comment.upxuu.com/sdk.js';
-              script.async = true;
-              document.body.appendChild(script);
-            }
-          }, 500);
-        });
-      `]
-    ]
-  }
-}
-```
-
-**方案二：自定义主题**
+#### VitePress（所有页面自动显示评论）
 
 创建 `.vitepress/theme/index.js`：
 
@@ -501,28 +418,143 @@ import DefaultTheme from 'vitepress/theme'
 
 export default {
   extends: DefaultTheme,
-  enhanceApp({ app, router }) {
-    if (typeof window !== 'undefined') {
-      router.onAfterRouteChanged = () => {
-        setTimeout(() => {
-          if (!document.getElementById('extalk-comments')) {
-            const commentsDiv = document.createElement('div')
-            commentsDiv.id = 'extalk-comments'
-            const vpDoc = document.querySelector('.vp-doc')
-            if (vpDoc) vpDoc.appendChild(commentsDiv)
-            
-            const script = document.createElement('script')
-            script.src = 'https://comment.upxuu.com/sdk.js'
-            document.body.appendChild(script)
-          }
-        }, 100)
-      }
+  setup() {
+    const route = useRoute()
+    
+    onMounted(() => {
+      setTimeout(() => insertCommentSection(), 100)
+    })
+    
+    watch(() => route.path, () => {
+      setTimeout(() => insertCommentSection(), 100)
+    })
+    
+    function insertCommentSection() {
+      const oldWrapper = document.getElementById('extalk-wrapper')
+      if (oldWrapper) oldWrapper.remove()
+      
+      window.__extalk_comments_init = false
+      
+      const wrapper = document.createElement('div')
+      wrapper.id = 'extalk-wrapper'
+      wrapper.style.cssText = 'margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--vp-c-divider); width: 100%;'
+      wrapper.innerHTML = '<h2 style="text-align: center; margin-bottom: 20px;">💬 评论</h2><div id="extalk-comments" style="width: 100%; margin: 20px 0;"></div>'
+      
+      const vpDoc = document.querySelector('.vp-doc')
+      if (vpDoc) vpDoc.appendChild(wrapper)
+      
+      const oldScript = document.querySelector('script[src="https://comment.upxuu.com/sdk.js"]')
+      if (oldScript) oldScript.remove()
+      const script = document.createElement('script')
+      script.src = 'https://comment.upxuu.com/sdk.js'
+      script.async = true
+      document.body.appendChild(script)
     }
   }
 }
 ```
 
-就这么简单！所有文档页面底部都会自动显示评论区。
+#### Hexo
+
+在主题布局文件（如 `layout/_partial/comment.ejs`）中添加：
+
+```ejs
+<div id="extalk-comments"></div>
+<script src="https://comment.upxuu.com/sdk.js"></script>
+```
+
+或在 `scripts/extalk.js` 中创建插件：
+
+```js
+hexo.extend.filter.register('after_post_render', function(data) {
+  data.content += '<div id="extalk-comments"></div><script src="https://comment.upxuu.com/sdk.js"></script>'
+  return data
+})
+```
+
+#### Hugo
+
+创建 `layouts/partials/comments.html`：
+
+```html
+{{ if .Params.comments }}
+<div id="extalk-comments"></div>
+<script src="https://comment.upxuu.com/sdk.js"></script>
+{{ end }}
+```
+
+在主布局中引用：
+
+```html
+{{ partial "comments.html" . }}
+```
+
+#### Jekyll
+
+创建 `_includes/comments.html`：
+
+```html
+<div id="extalk-comments"></div>
+<script src="https://comment.upxuu.com/sdk.js"></script>
+```
+
+在布局中引用：
+
+```liquid
+{% if page.comments %}
+  {% include comments.html %}
+{% endif %}
+```
+
+#### React
+
+```jsx
+import { useEffect } from 'react'
+
+function CommentSection() {
+  useEffect(() => {
+    if (!document.querySelector('script[src="https://comment.upxuu.com/sdk.js"]')) {
+      const script = document.createElement('script')
+      script.src = 'https://comment.upxuu.com/sdk.js'
+      script.async = true
+      document.body.appendChild(script)
+    }
+  }, [])
+  
+  return (
+    <div style={{ marginTop: '60px', paddingTop: '40px', borderTop: '1px solid #e5e7eb' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>💬 评论</h2>
+      <div id="extalk-comments" />
+    </div>
+  )
+}
+```
+
+#### Vue
+
+```vue
+<template>
+  <div class="extalk-comments">
+    <h2>💬 评论</h2>
+    <div id="extalk-comments"></div>
+  </div>
+</template>
+
+<script setup>
+onMounted(() => {
+  if (!document.querySelector('script[src="https://comment.upxuu.com/sdk.js"]')) {
+    const script = document.createElement('script')
+    script.src = 'https://comment.upxuu.com/sdk.js'
+    script.async = true
+    document.body.appendChild(script)
+  }
+})
+</script>
+```
+
+#### 更多框架
+
+查看 [完整集成指南](https://extalk.upxuu.com/guide/integration) 获取 Next.js、Nuxt、Astro、Fuwari 等框架的集成方法。
 
 ### 配置选项
 

@@ -266,8 +266,8 @@ export default {
     #extalk-comments {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #333;
-      max-width: 800px;
-      margin: 20px auto;
+      width: 100%;
+      margin: 0 auto;
     }
     .comment-form {
       padding: 0;
