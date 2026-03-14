@@ -941,7 +941,16 @@ export default {
       
       // 添加滚动监听动画 - 一次只有一个评论项滑出，从上到下依次渲染
       // 无限滚动模式除外，它的动画在 loadNextPage 中处理
-      if (currentLoadMode !== 'infinite') {
+      if (currentLoadMode === 'infinite') {
+        // 无限滚动模式：第一页评论立即显示，不需要动画
+        setTimeout(() => {
+          const commentItems = Array.from(listContainer.querySelectorAll('.comment-item'));
+          commentItems.forEach(item => {
+            item.classList.add('animate-in');
+          });
+        }, 10);
+      } else {
+        // 其他模式：使用 Intersection Observer 逐个触发动画
         setTimeout(() => {
           const commentItems = Array.from(listContainer.querySelectorAll('.comment-item'));
           let currentIndex = 0;
