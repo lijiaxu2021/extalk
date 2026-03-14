@@ -282,63 +282,6 @@ export default {
       transform: translateY(0);
       max-height: 500px;
     }
-    
-    /* 常驻底部的极简评论框 */
-    .comment-form-fixed {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-      transition: all 0.3s;
-    }
-    .comment-form-fixed:focus-within {
-      border-color: #0070f3;
-      box-shadow: 0 4px 16px rgba(0, 112, 243, 0.15);
-    }
-    .comment-input-fixed {
-      flex: 1;
-      border: none;
-      outline: none;
-      resize: none;
-      font-size: 14px;
-      color: #333;
-      background: transparent;
-      font-family: inherit;
-      line-height: 1.6;
-    }
-    .comment-input-fixed::placeholder {
-      color: #a0aec0;
-    }
-    .submit-btn-fixed {
-      padding: 10px 24px;
-      background: #0070f3;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .submit-btn-fixed:hover {
-      background: #0056cc;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 112, 243, 0.2);
-    }
-    .submit-btn-fixed:active {
-      transform: translateY(0);
-    }
-    .submit-btn-fixed:disabled {
-      background: #cbd5e0;
-      cursor: not-allowed;
-      transform: none;
-    }
     .form-toggle-btn {
       display: flex;
       align-items: center;
@@ -696,28 +639,30 @@ export default {
   function renderApp(container) {
     container.innerHTML = \`
       <div id="views-counter" class="views-info"></div>
-      
-      <!-- 回复提示信息 -->
-      <div id="reply-info"></div>
-      
-      <!-- 常驻底部的极简评论框 -->
-      <div id="comment-form-fixed" class="comment-form-fixed">
-        <textarea id="comment-content" class="comment-input-fixed" placeholder="写下你的想法...（点击发送按钮）" style="flex:1; border:none; outline:none; resize:none; font-size:14px; color:#333; background:transparent;"></textarea>
-        <button id="submit-comment-fixed" class="submit-btn-fixed">发送</button>
+      <div id="form-toggle" class="form-toggle-btn">
+        <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+        <span>点击发送评论</span>
       </div>
-      
+      <div id="comment-form-container" class="comment-form">
+        <div class="form-title">
+          <div style="display:flex; align-items:center; gap:10px">
+            <span id="form-title">发表评论</span>
+            <span id="close-form" class="close-form-btn">收起</span>
+          </div>
+          <span class="auth-btn" id="auth-status-btn">登录/注册</span>
+        </div>
+        <div id="reply-info"></div>
+        <div class="input-group">
+          <input type="text" id="comment-nickname" class="comment-input" placeholder="您的昵称" required />
+        </div>
+        <div class="input-group">
+          <textarea id="comment-content" class="comment-input" style="height: 120px; resize: vertical;" placeholder="写下你的想法..." required></textarea>
+        </div>
+        <div id="hcaptcha-container" style="margin-bottom: 15px;"></div>
+        <button id="submit-comment" class="submit-btn">发布评论</button>
+      </div>
       <div id="comments-list">正在加载评论...</div>
       <div id="pagination-container" class="pagination"></div>
-      
-      <!-- 验证弹窗 -->
-      <div id="verify-modal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:450px;">
-          <div class="modal-title">验证身份</div>
-          <div id="verify-content">
-            <!-- 动态内容：昵称输入或登录表单 -->
-          </div>
-        </div>
-      </div>
       
       <div id="auth-modal" class="modal">
         <div class="modal-content">
@@ -764,7 +709,30 @@ export default {
       }
     };
 
-    document.getElementById('submit-comment-fixed').onclick = submitCommentFixed;
+    document.getElementById('form-toggle').onclick = () => {
+      const form = document.getElementById('comment-form-container');
+      form.classList.add('expanded');
+      document.getElementById('form-toggle').style.display = 'none';
+      
+      // 延迟触发动画
+      setTimeout(() => {
+        form.style.display = 'block';
+      }, 10);
+    };
+
+    document.getElementById('close-form').onclick = () => {
+      const form = document.getElementById('comment-form-container');
+      form.classList.remove('expanded');
+      
+      // 等待动画完成后隐藏
+      setTimeout(() => {
+        form.style.display = 'none';
+        document.getElementById('form-toggle').style.display = 'flex';
+        window.cancelReply();
+      }, 400);
+    };
+
+    document.getElementById('submit-comment').onclick = submitComment;
     document.getElementById('auth-status-btn').onclick = () => {
       if (currentUser) {
         if(confirm('确定登出当前账户？')) {
@@ -898,12 +866,15 @@ export default {
 
   function updateAuthUI() {
     const btn = document.getElementById('auth-status-btn');
-        if (currentUser) {
+    const nickInput = document.getElementById('comment-nickname');
+    if (currentUser) {
       btn.innerText = \`已登录: \${currentUser.nickname}\`;
-
+      nickInput.value = currentUser.nickname;
+      nickInput.disabled = true;
     } else {
       btn.innerText = '登录/注册';
-
+      nickInput.value = '';
+      nickInput.disabled = false;
     }
   }
 
@@ -1380,6 +1351,16 @@ export default {
 
   window.setReply = function(id, nickname) {
     replyingTo = id;
+    const form = document.getElementById('comment-form-container');
+    form.classList.add('expanded');
+    document.getElementById('form-toggle').style.display = 'none';
+    
+    // 延迟触发动画
+    setTimeout(() => {
+      form.style.display = 'block';
+    }, 10);
+    
+    document.getElementById('form-title').innerText = '回复评论';
     document.getElementById('reply-info').innerHTML = \`
       <div class="reply-target">
         <span>回复 @\${nickname}</span>
@@ -1468,155 +1449,22 @@ export default {
     } catch(e) { alert('请求失败'); }
   };
 
-  // 常驻评论框的提交逻辑
-  async function submitCommentFixed() {
+  async function submitComment() {
     const contentInput = document.getElementById('comment-content');
     const content = contentInput.value.trim();
+    const nickname = document.getElementById('comment-nickname').value.trim();
     
-    if (!content) {
-      alert('请输入评论内容');
-      return;
-    }
-    
-    // 检查是否已登录
-    if (currentUser) {
-      // 已登录，直接显示人机验证
-      showVerifyModal('captcha', content);
+    let hcaptchaToken = null;
+    if (window.hcaptcha && hcaptchaWidgetId !== null) {
+      hcaptchaToken = window.hcaptcha.getResponse(hcaptchaWidgetId);
     } else {
-      // 未登录，显示昵称输入
-      showVerifyModal('nickname', content);
-    }
-  }
-  
-  // 显示验证弹窗
-  function showVerifyModal(type, content) {
-    const modal = document.getElementById('verify-modal');
-    const verifyContent = document.getElementById('verify-content');
-    
-    if (type === 'nickname') {
-      // 显示昵称输入框
-      verifyContent.innerHTML = \`
-        <div style="padding:20px 0;">
-          <p style="margin-bottom:15px; color:#4a5568; font-size:14px;">请输入您的昵称</p>
-          <input type="text" id="verify-nickname" class="comment-input" placeholder="昵称" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; margin-bottom:15px;" autofocus />
-          <div id="verify-hcaptcha"></div>
-          <div style="display:flex; gap:10px; margin-top:20px;">
-            <button id="verify-cancel" style="flex:1; padding:10px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; font-size:14px;">取消</button>
-            <button id="verify-submit" style="flex:1; padding:10px; background:#0070f3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">发表评论</button>
-          </div>
-          <p style="margin-top:15px; font-size:12px; color:#718096; text-align:center;">
-            已有账号？<a href="javascript:void(0)" id="verify-login-link" style="color:#0070f3; text-decoration:none;">点击登录</a>
-          </p>
-        </div>
-      \`;
-      
-      // 绑定事件
-      setTimeout(() => {
-        document.getElementById('verify-nickname').focus();
-        
-        // 加载 hCaptcha
-        loadHcaptchaForVerify();
-        
-        // 取消按钮
-        document.getElementById('verify-cancel').onclick = () => {
-          modal.style.display = 'none';
-        };
-        
-        // 提交按钮
-        document.getElementById('verify-submit').onclick = () => {
-          const nickname = document.getElementById('verify-nickname').value.trim();
-          if (!nickname) {
-            alert('请输入昵称');
-            return;
-          }
-          
-          const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(hcaptchaWidgetId) : null;
-          if (!hcaptchaToken) {
-            alert('请先完成人机验证');
-            return;
-          }
-          
-          // 执行提交
-          executeSubmit(nickname, content, hcaptchaToken);
-        };
-        
-        // 登录链接
-        document.getElementById('verify-login-link').onclick = () => {
-          modal.style.display = 'none';
-          showAuthModal();
-        };
-      }, 100);
-      
-    } else if (type === 'captcha') {
-      // 已登录，只显示人机验证
-      verifyContent.innerHTML = \`
-        <div style="padding:20px 0;">
-          <p style="margin-bottom:15px; color:#4a5568; font-size:14px;">完成人机验证以发表评论</p>
-          <div id="verify-hcaptcha"></div>
-          <div style="display:flex; gap:10px; margin-top:20px;">
-            <button id="verify-cancel" style="flex:1; padding:10px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; font-size:14px;">取消</button>
-            <button id="verify-submit" style="flex:1; padding:10px; background:#0070f3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">发表评论</button>
-          </div>
-        </div>
-      \`;
-      
-      setTimeout(() => {
-        loadHcaptchaForVerify();
-        
-        document.getElementById('verify-cancel').onclick = () => {
-          modal.style.display = 'none';
-        };
-        
-        document.getElementById('verify-submit').onclick = () => {
-          const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(hcaptchaWidgetId) : null;
-          if (!hcaptchaToken) {
-            alert('请先完成人机验证');
-            return;
-          }
-          
-          // 使用已登录用户信息提交
-          executeSubmit(currentUser.nickname, content, hcaptchaToken);
-        };
-      }, 100);
+      hcaptchaToken = document.querySelector('[name="h-captcha-response"]')?.value;
     }
     
-    modal.style.display = 'flex';
-  }
-  
-  // 为验证弹窗加载 hCaptcha
-  function loadHcaptchaForVerify() {
-    if (!window.hcaptcha) {
-      const script = document.createElement('script');
-      script.src = 'https://js.hcaptcha.com/1/api.js';
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
-      
-      script.onload = () => {
-        hcaptchaWidgetId = window.hcaptcha.render('verify-hcaptcha', { 
-          sitekey: HCAPTCHA_SITE_KEY,
-          theme: 'light'
-        });
-      };
-    } else {
-      hcaptchaWidgetId = window.hcaptcha.render('verify-hcaptcha', { 
-        sitekey: HCAPTCHA_SITE_KEY,
-        theme: 'light'
-      });
-    }
-  }
-  
-  // 执行提交操作
-  async function executeSubmit(nickname, content, hcaptchaToken) {
-    if (content.length > maxCommentLength) {
-      alert(\`评论内容过长，不能超过 \${maxCommentLength} 个字符\`);
-      return;
-    }
-    
-    const submitBtn = document.getElementById('verify-submit');
-    submitBtn.disabled = true;
-    submitBtn.innerText = '正在发布...';
-    
+    if (!content || !nickname || !hcaptchaToken) return alert('请填写完整昵称、内容并完成人机验证');
+    if (content.length > maxCommentLength) return alert(\`评论内容过长，不能超过 \${maxCommentLength} 个字符\`);
+    const submitBtn = document.getElementById('submit-comment');
+    submitBtn.disabled = true; submitBtn.innerText = '正在发布...';
     try {
       const res = await fetch(\`\${API_ENDPOINT}/comments\`, {
         method: 'POST',
@@ -1631,34 +1479,34 @@ export default {
       });
       
       if (res.ok) {
-        // 关闭弹窗
-        document.getElementById('verify-modal').style.display = 'none';
-        
-        // 清空输入框
-        document.getElementById('comment-content').value = '';
+        contentInput.value = '';
         cancelReply();
-        
-        // 重置 hCaptcha
         if (window.hcaptcha && hcaptchaWidgetId !== null) {
           window.hcaptcha.reset(hcaptchaWidgetId);
         }
-        
         // 重置到第一页并重新加载所有评论
         currentPage = 1;
         hasMorePages = true;
         totalPages = 1;
-        infiniteScrollInitialized = false;
+        infiniteScrollInitialized = false; // 重置无限滚动初始化标志
         
+        // 清理旧的观察者
         if (observer) {
           observer.disconnect();
           observer = null;
         }
         
+        // 移除 sentinel 元素
         const oldSentinel = document.getElementById('sentinel');
-        if (oldSentinel) oldSentinel.remove();
+        if (oldSentinel) {
+          oldSentinel.remove();
+        }
         
+        // 移除加载状态提示
         const oldLoading = document.getElementById('infinite-loading');
-        if (oldLoading) oldLoading.remove();
+        if (oldLoading) {
+          oldLoading.remove();
+        }
         
         loadComments();
       } else { 
@@ -1668,10 +1516,8 @@ export default {
     } catch (err) { 
       console.error('Submit error:', err);
       alert('网络请求出错，请稍后重试'); 
-    } finally { 
-      submitBtn.disabled = false; 
-      submitBtn.innerText = '发表评论'; 
     }
+    finally { submitBtn.disabled = false; submitBtn.innerText = '发布评论'; }
   }
 
   function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
@@ -2214,34 +2060,67 @@ export default {
       const limit = parseInt(url.searchParams.get("limit") || "6");
       const offset = (page - 1) * limit;
 
-      // 获取当前页面的根评论（按时间降序排列，最新的在前）
-      const rootCommentsRes = await env.DB.prepare("SELECT * FROM comments WHERE page_url = ? AND parent_id IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?").bind(pageUrl, limit, offset).all();
-      const rootCommentsPage = rootCommentsRes.results as any[];
+      // 使用 CTE 合并所有查询为 1 次（5 次 → 1 次）
+      const query = `
+        WITH 
+        -- 分页根评论（按时间降序）
+        paginated_roots AS (
+          SELECT * FROM comments 
+          WHERE page_url = ? AND parent_id IS NULL 
+          ORDER BY created_at DESC 
+          LIMIT ? OFFSET ?
+        ),
+        -- 当前页面根评论的所有回复（按时间升序）
+        replies AS (
+          SELECT c.* FROM comments c
+          INNER JOIN paginated_roots pr ON c.parent_id = pr.id
+          WHERE c.page_url = ?
+          ORDER BY c.created_at ASC
+        ),
+        -- 计数缓存（O(1) 查询）
+        total_count AS (
+          SELECT root_count as count FROM comment_counts WHERE page_url = ?
+        ),
+        -- 页面统计
+        page_stats AS (
+          SELECT views, likes FROM page_views WHERE page_url = ?
+        ),
+        -- 管理员设置
+        admin_settings AS (
+          SELECT max_comment_length FROM users WHERE role = 'admin' LIMIT 1
+        )
+        -- 合并所有结果
+        SELECT * FROM paginated_roots
+        UNION ALL
+        SELECT * FROM replies
+        UNION ALL
+        SELECT 'meta' as type, count, NULL as root_count, NULL as reply_count, NULL as updated_at FROM total_count
+        UNION ALL
+        SELECT 'meta' as type, NULL as count, views, likes, NULL FROM page_stats
+        UNION ALL
+        SELECT 'meta' as type, NULL, NULL, NULL, max_comment_length FROM admin_settings;
+      `;
       
-      // 获取所有评论的总数用于分页
-      const totalRes = await env.DB.prepare("SELECT COUNT(*) as count FROM comments WHERE page_url = ? AND parent_id IS NULL").bind(pageUrl).first() as any;
-      const total = totalRes?.count || 0;
+      const result = await env.DB.prepare(query).bind(pageUrl, limit, offset, pageUrl, pageUrl, pageUrl).all();
+      const allRows = result.results as any[];
       
-      // 获取当前页面根评论的所有回复（按时间升序排列，最早的回复在前）
-      const rootIdsPage = rootCommentsPage.map((c: any) => c.id);
-      let replies = [];
-      if (rootIdsPage.length > 0) {
-        const placeholders = rootIdsPage.map(() => '?').join(',');
-        const repliesRes = await env.DB.prepare(`SELECT * FROM comments WHERE page_url = ? AND parent_id IN (${placeholders}) ORDER BY created_at ASC`).bind(pageUrl, ...rootIdsPage).all();
-        replies = repliesRes.results as any[];
-      }
+      // 分离根评论、回复和元数据
+      const rootCommentsPage = allRows.filter(row => row.parent_id === null && row.type !== 'meta');
+      const replies = allRows.filter(row => row.parent_id !== null);
+      const metaRow = allRows.find(row => row.type === 'meta');
       
-      const admin = await env.DB.prepare("SELECT max_comment_length FROM users WHERE role = 'admin'").first() as any;
-      const maxLength = admin?.max_comment_length || 500;
-      
-      const viewRes = await env.DB.prepare("SELECT views, likes FROM page_views WHERE page_url = ?").bind(pageUrl).first() as any;
-      const views = viewRes?.views || 0;
-      const pageLikes = viewRes?.likes || 0;
+      const total = metaRow?.count || 0;
+      const views = metaRow?.views || 0;
+      const pageLikes = metaRow?.likes || 0;
+      const maxLength = metaRow?.max_comment_length || 500;
 
-      // 合并根评论和回复，根评论已经按时间降序排列
-      const allComments = [...rootCommentsPage, ...replies];
-
-      return new Response(JSON.stringify({ comments: allComments, total, max_comment_length: maxLength, views, page_likes: pageLikes }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      return new Response(JSON.stringify({ 
+        comments: [...rootCommentsPage, ...replies], 
+        total, 
+        max_comment_length: maxLength, 
+        views, 
+        page_likes: pageLikes 
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
 
     // POST /comments
@@ -2287,7 +2166,4 @@ export default {
     return new Response("Not Found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
   },
 };
-
-
-
 
