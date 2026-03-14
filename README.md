@@ -10,7 +10,8 @@
 - **透明融合 UI**：无缝契合各种博客主题，移除传统"框中框"设计
 - **折叠式评论框**：默认收起，点击展开，最大程度减少对文章内容的干扰
 - **无限嵌套回复**：支持多级对话流，逻辑清晰
-- **实时评论排序**：评论按时间从新到旧自动排序，支持分页浏览
+- **实时评论排序**：评论按时间从新到旧自动排序
+- **三种加载模式**：支持传统分页、无限滚动、加载更多，灵活配置
 
 ### 📊 数据统计与互动
 - **浏览量统计**：不记录隐私的纯计数方案，集成在评论区顶部
@@ -62,7 +63,13 @@ JWT_SECRET = "your-jwt-secret-key"
 ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASS = "admin-password"
 BASE_URL = "https://your-worker-domain.workers.dev"
+LOAD_MODE = "pagination"  # 可选：pagination | infinite | loadmore
 ```
+
+**LOAD_MODE 说明：**
+- `pagination`（默认）：传统分页模式，显示页码按钮
+- `infinite`：无限滚动模式，滚动到底部自动加载
+- `loadmore`：加载更多模式，显示"加载更多"按钮
 
 ### 4. 部署到 Cloudflare
 ```bash
@@ -222,6 +229,44 @@ const observer = new IntersectionObserver((entries) => {
 - **前端虚拟滚动**：动态渲染可见区域的评论项
 - **懒加载策略**：图片、表情等资源延迟加载
 - **防抖节流**：点赞、提交等操作的防抖处理
+
+#### 三种加载模式实现
+
+**1. Pagination 模式（传统分页）**
+```javascript
+// 显示页码按钮，支持自由跳转
+function renderPagination(total) {
+  const totalPages = Math.ceil(total / pageSize);
+  // 渲染页码按钮...
+}
+```
+
+**2. Infinite 模式（无限滚动）**
+```javascript
+// 使用 Intersection Observer 监听滚动
+function setupInfiniteScroll() {
+  const sentinel = document.createElement('div');
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && hasMorePages) {
+      loadNextPage(); // 自动加载下一页
+    }
+  }, { rootMargin: '200px' });
+  observer.observe(sentinel);
+}
+```
+
+**3. Load More 模式（加载更多）**
+```javascript
+// 显示"加载更多"按钮
+function loadMore() {
+  if (isLoading || !hasMorePages) return;
+  loadNextPage(); // 点击加载下一页
+}
+```
+
+**模式配置：**
+- **环境变量**：在 `wrangler.toml` 中设置 `LOAD_MODE`
+- **URL 参数**：通过 `?mode=pagination|infinite|loadmore` 临时覆盖
 
 ### 邮件通知系统
 
