@@ -215,10 +215,12 @@ export default {
     // Serve SDK
     if (url.pathname === "/sdk.js") {
       const baseUrl = env.BASE_URL || url.origin;
+      const loadMode = env.LOAD_MODE || 'pagination'; // pagination, infinite, loadmore
       const sdkCode = `(function() {
   const SCRIPT_URL = 'https://js.hcaptcha.com/1/api.js';
   const API_ENDPOINT = '${baseUrl}';
   const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
+  const LOAD_MODE = '${loadMode}'; // pagination, infinite, loadmore
 
   let replyingTo = null;
   let currentUser = JSON.parse(localStorage.getItem('extalk_user') || 'null');
@@ -227,6 +229,12 @@ export default {
   let maxCommentLength = 500;
   let hcaptchaWidgetId = null;
   let authHcaptchaWidgetId = null;
+  let isLoading = false;
+  let hasMorePages = true;
+  let totalPages = 1;
+  let currentLoadMode = LOAD_MODE;
+  let observer = null;
+  let loadMoreBtn = null;
 
   const styles = \`
     #extalk-comments {
@@ -527,6 +535,34 @@ export default {
       color: white;
       border-color: #0070f3;
     }
+    .load-more-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 20px 0;
+      background: #f0f9ff;
+      color: #0070f3;
+      border: 2px solid #0070f3;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .load-more-btn:hover {
+      background: #0070f3;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 112, 243, 0.2);
+    }
+    .load-more-btn:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      border-color: #e2e8f0;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
     .otp-group {
       display: flex;
       gap: 10px;
@@ -551,6 +587,13 @@ export default {
   function init() {
     const container = document.getElementById('extalk-comments');
     if (!container) return;
+
+    // 支持通过 URL 参数覆盖加载模式
+    const urlParams = new URLSearchParams(window.location.search);
+    const modeParam = urlParams.get('mode');
+    if (modeParam && ['pagination', 'infinite', 'loadmore'].includes(modeParam)) {
+      currentLoadMode = modeParam;
+    }
 
     const styleTag = document.createElement('style');
     styleTag.textContent = styles;
@@ -932,16 +975,177 @@ export default {
   }
 
   function renderPagination(total) {
-    const totalPages = Math.ceil(total / pageSize);
-    if (totalPages <= 1) {
-      document.getElementById('pagination-container').innerHTML = '';
-      return;
+    totalPages = Math.ceil(total / pageSize);
+    hasMorePages = currentPage < totalPages;
+    const container = document.getElementById('pagination-container');
+    
+    // 根据加载模式渲染不同的 UI
+    if (currentLoadMode === 'pagination') {
+      // 传统分页模式
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+      let html = '';
+      for (let i = 1; i <= totalPages; i++) {
+        html += \`<button class="page-btn \${i === currentPage ? 'active' : ''}" onclick="window.changePage(\${i})">\${i}</button>\`;
+      }
+      container.innerHTML = html;
+    } else if (currentLoadMode === 'infinite') {
+      // 无限滚动模式 - 不需要分页控件
+      container.innerHTML = '';
+      // 设置滚动监听
+      setupInfiniteScroll();
+    } else if (currentLoadMode === 'loadmore') {
+      // 加载更多模式
+      if (!hasMorePages) {
+        container.innerHTML = '<div style="text-align:center; padding: 20px; color: #94a3b8;">没有更多评论了</div>';
+      } else {
+        container.innerHTML = \`
+          <button id="load-more-btn" class="load-more-btn" onclick="window.loadMore()">
+            加载更多评论
+          </button>
+        \`;
+      }
     }
-    let html = '';
-    for (let i = 1; i <= totalPages; i++) {
-      html += \`<button class="page-btn \${i === currentPage ? 'active' : ''}" onclick="window.changePage(\${i})">\${i}</button>\`;
+  }
+
+  // 无限滚动加载
+  function setupInfiniteScroll() {
+    // 清理旧的观察者
+    if (observer) {
+      observer.disconnect();
     }
-    document.getElementById('pagination-container').innerHTML = html;
+    
+    const sentinel = document.createElement('div');
+    sentinel.id = 'sentinel';
+    sentinel.style.cssText = 'height: 1px; width: 100%;';
+    document.getElementById('comments-list').appendChild(sentinel);
+    
+    observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMorePages && !isLoading) {
+        loadNextPage();
+      }
+    }, {
+      root: null,
+      rootMargin: '200px',
+      threshold: 0
+    });
+    
+    observer.observe(sentinel);
+  }
+
+  // 加载更多按钮模式
+  window.loadMore = function() {
+    if (isLoading || !hasMorePages) return;
+    
+    const btn = document.getElementById('load-more-btn');
+    if (btn) {
+      btn.textContent = '加载中...';
+      btn.disabled = true;
+    }
+    
+    loadNextPage();
+  };
+
+  // 加载下一页
+  async function loadNextPage() {
+    if (isLoading || !hasMorePages) return;
+    
+    isLoading = true;
+    currentPage++;
+    
+    try {
+      const pageUrl = window.location.pathname;
+      const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${pageSize}\`);
+      const data = await response.json();
+      const newComments = data.comments;
+      
+      if (newComments.length === 0) {
+        hasMorePages = false;
+        isLoading = false;
+        return;
+      }
+      
+      const rootComments = newComments.filter(c => !c.parent_id);
+      const replies = newComments.filter(c => c.parent_id);
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      const total = data.total;
+      
+      function renderComment(c, level = 0) {
+        const commentReplies = replies.filter(r => r.parent_id === c.id);
+        const delBtnHtml = isAdmin ? \`<span class="del-btn" onclick="window.delComment(\${c.id})">删除</span>\` : '';
+        const floorNumber = total - ((currentPage - 1) * pageSize + rootComments.indexOf(c));
+        const floorHtml = level === 0 ? \`<span class="floor-tag">\${floorNumber}F</span>\` : '';
+        const locationHtml = c.location ? \`<span class="location-tag"><svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>\${escapeHtml(c.location)}</span>\` : '';
+        const timeStr = c.created_at;
+        const liked = localStorage.getItem('liked_comment_' + c.id);
+        
+        return \`
+          <div class="comment-item" style="\${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
+            <div class="comment-header">
+              <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${floorHtml}\${locationHtml}</div>
+              <span class="comment-meta">\${timeStr}</span>
+            </div>
+            <div class="comment-content" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.content)}</div>
+            <div class="comment-footer" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
+              <div class="like-btn \${liked ? 'liked' : ''}" onclick="window.likeComment(\${c.id}, this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                <span class="like-count">\${c.likes || 0}</span>
+              </div>
+              <a href="javascript:void(0)" class="reply-btn" style="font-size:0.85rem; text-decoration:none;" onclick="window.setReply(\${c.id}, '\${escapeHtml(c.nickname)}')">回复</a>
+              \${delBtnHtml}
+            </div>
+            \${commentReplies.length > 0 ? \`
+              <div class="replies-container">
+                \${commentReplies.map(r => renderComment(r, level + 1)).join('')}
+              </div>
+            \` : ''}
+          </div>\`;
+      }
+      
+      const listContainer = document.getElementById('comments-list');
+      const newHtml = rootComments.map(c => renderComment(c)).join('');
+      listContainer.insertAdjacentHTML('beforeend', newHtml);
+      
+      // 新评论的滚动动画
+      setTimeout(() => {
+        const newItems = listContainer.querySelectorAll('.comment-item');
+        const startIndex = newItems.length - rootComments.length;
+        for (let i = startIndex; i < newItems.length; i++) {
+          newItems[i].classList.add('animate-in');
+        }
+      }, 100);
+      
+      hasMorePages = currentPage < totalPages;
+      
+      // 更新加载更多按钮状态
+      if (currentLoadMode === 'loadmore') {
+        renderPagination(total);
+      }
+      
+      // 无限滚动模式下，重新设置观察器
+      if (currentLoadMode === 'infinite' && hasMorePages) {
+        const sentinel = document.getElementById('sentinel');
+        if (sentinel) {
+          observer.unobserve(sentinel);
+          setTimeout(() => observer.observe(sentinel), 100);
+        }
+      }
+      
+    } catch (err) {
+      console.error('Load more failed:', err);
+      currentPage--; // 回滚页码
+    } finally {
+      isLoading = false;
+      if (currentLoadMode === 'loadmore') {
+        const btn = document.getElementById('load-more-btn');
+        if (btn) {
+          btn.textContent = '加载更多评论';
+          btn.disabled = false;
+        }
+      }
+    }
   }
 
   window.changePage = function(page) {
