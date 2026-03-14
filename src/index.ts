@@ -697,6 +697,9 @@ export default {
     container.innerHTML = \`
       <div id="views-counter" class="views-info"></div>
       
+      <!-- 回复提示信息 -->
+      <div id="reply-info"></div>
+      
       <!-- 常驻底部的极简评论框 -->
       <div id="comment-form-fixed" class="comment-form-fixed">
         <textarea id="comment-content" class="comment-input-fixed" placeholder="写下你的想法...（点击发送按钮）" style="flex:1; border:none; outline:none; resize:none; font-size:14px; color:#333; background:transparent;"></textarea>
