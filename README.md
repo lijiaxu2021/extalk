@@ -452,6 +452,55 @@ https://your-worker.workers.dev/init-admin-999
 </html>
 ```
 
+#### VitePress
+
+为所有文档页面添加评论系统：
+
+1. **创建自定义主题**：创建 `.vitepress/theme/index.js`
+
+```js
+import DefaultTheme from 'vitepress/theme'
+import { h, onMounted } from 'vue'
+
+export default {
+  extends: DefaultTheme,
+  setup() {
+    onMounted(() => {
+      // 加载 ExTalk SDK
+      const script = document.createElement('script')
+      script.src = 'https://comment.upxuu.com/sdk.js'
+      script.async = true
+      document.body.appendChild(script)
+    })
+  },
+  Layout() {
+    return h(DefaultTheme.Layout, null, {
+      // 在内容底部插入评论区
+      'doc-after': () => h('div', {
+        style: {
+          marginTop: '60px',
+          paddingTop: '40px',
+          borderTop: '1px solid var(--vp-c-divider)'
+        }
+      }, [
+        h('h2', {
+          style: {
+            fontSize: '1.5rem',
+            marginBottom: '20px',
+            color: 'var(--vp-c-text-1)'
+          }
+        }, '💬 评论'),
+        h('div', { id: 'extalk-comments', style: { marginTop: '20px' } })
+      ])
+    })
+  }
+}
+```
+
+2. **使用自定义主题**：VitePress 会自动使用 `.vitepress/theme/index.js` 作为主题入口
+
+就这么简单！所有文档页面底部都会自动显示评论区。
+
 ### 配置选项
 
 | 参数          | 说明     | 默认值          | 可选值                                  |
