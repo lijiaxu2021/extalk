@@ -3,10 +3,12 @@ import { D1Database } from "@cloudflare/workers-types/experimental";
 export interface Env {
   DB: D1Database;
   HCAPTCHA_SECRET_KEY: string;
+  HCAPTCHA_SITE_KEY: string;
   RESEND_API_KEY: string;
   JWT_SECRET: string;
   ADMIN_EMAIL: string;
   ADMIN_PASS: string;
+  ADMIN_URL: string;
   BASE_URL: string;
 }
 
@@ -236,10 +238,11 @@ export default {
     if (url.pathname === "/sdk.js") {
       const baseUrl = env.BASE_URL || url.origin;
       const loadMode = env.LOAD_MODE || 'pagination'; // pagination, infinite, loadmore
+      const hcaptchaSiteKey = env.HCAPTCHA_SITE_KEY || '09063bfe-9ca4-46d6-ae94-b7486344b53a';
       const sdkCode = `(function() {
   const SCRIPT_URL = 'https://js.hcaptcha.com/1/api.js';
   const API_ENDPOINT = '${baseUrl}';
-  const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
+  const HCAPTCHA_SITE_KEY = '${hcaptchaSiteKey}';
   const LOAD_MODE = '${loadMode}'; // pagination, infinite, loadmore
 
   let replyingTo = null;
@@ -1634,7 +1637,8 @@ export default {
     }
 
     // Admin Panel
-    if (url.pathname === "/upxuuadmin") {
+    const adminUrl = env.ADMIN_URL || "/upxuuadmin";
+    if (url.pathname === adminUrl) {
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ExTalk Admin</title><style>
         :root { --primary: #0070f3; --bg: #f4f7f6; --text: #333; --card: #fff; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
@@ -1671,7 +1675,7 @@ export default {
       </div>
       <script>
         const API = '${url.origin}';
-        const HCAPTCHA_SITE_KEY = '09063bfe-9ca4-46d6-ae94-b7486344b53a';
+        const HCAPTCHA_SITE_KEY = '${hcaptchaSiteKey}';
         let token = localStorage.getItem('extalk_admin_token');
         let currentTab = 'comments';
         let data = { comments: [], domains: [], users: [] };

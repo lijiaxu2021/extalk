@@ -345,6 +345,7 @@ npx wrangler d1 execute fuwari_comments_db --remote --file=schema.sql
 [vars]
 # hCaptcha 密钥（https://www.hcaptcha.com）
 HCAPTCHA_SECRET_KEY = "your-hcaptcha-secret"
+HCAPTCHA_SITE_KEY = "your-hcaptcha-site-key"
 
 # Resend 邮件 API（https://resend.com）
 RESEND_API_KEY = "re_xxxxxxxxxxxxx"
@@ -355,6 +356,9 @@ JWT_SECRET = "your-super-secret-jwt-key-min-32-chars"
 # 管理员账户
 ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASS = "your-admin-password"
+
+# 管理员后台 URL 路径（可自定义）
+ADMIN_URL = "/upxuuadmin"
 
 # 基础 URL（部署后自动获取）
 BASE_URL = "https://your-worker.workers.dev"
