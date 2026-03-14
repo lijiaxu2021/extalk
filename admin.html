@@ -6,15 +6,17 @@
   <title>ExTalk 管理后台</title>
   <style>
     :root {
-      --primary: #0070f3;
-      --primary-dark: #0056cc;
-      --success: #48bb78;
-      --danger: #f56565;
-      --warning: #ed8936;
-      --bg: #f7fafc;
+      --primary: #0ea5e9;
+      --primary-light: #38bdf8;
+      --primary-dark: #0284c7;
+      --primary-lighter: #e0f2fe;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --bg: #f0f9ff;
       --card: #ffffff;
-      --text: #1a202c;
-      --text-light: #718096;
+      --text: #0f172a;
+      --text-light: #64748b;
       --border: #e2e8f0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,7 +25,7 @@
     /* 登录界面 */
     .login-container {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
       display: flex; align-items: center; justify-content: center; z-index: 9999;
     }
     .login-box {
@@ -33,9 +35,8 @@
     .login-header { text-align: center; margin-bottom: 32px; }
     .login-logo {
       width: 64px; height: 64px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 16px; display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 20px; font-size: 32px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+      border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 32px;
     }
     .login-title { font-size: 28px; font-weight: 700; color: #1a202c; margin-bottom: 8px; }
     .login-subtitle { color: #718096; font-size: 14px; }
@@ -45,21 +46,21 @@
       width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px;
       font-size: 15px; outline: none; transition: all 0.2s; box-sizing: border-box;
     }
-    .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,112,243,0.1); }
+    .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
     .captcha-container { display: flex; justify-content: center; margin: 24px 0; padding: 16px; background: #f7fafc; border-radius: 10px; }
     .login-btn {
       width: 100%; padding: 14px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
       color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
-      cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 6px rgba(102,126,234,0.3);
+      cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 6px rgba(14,165,233,0.3);
     }
-    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(102,126,234,0.4); }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(14,165,233,0.4); }
     .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     
     /* 管理后台 */
     .admin-layout { display: flex; min-height: 100vh; }
     .sidebar {
-      width: 260px; background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+      width: 260px; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
       color: white; position: fixed; height: 100vh; overflow-y: auto; padding: 24px; box-sizing: border-box;
     }
     .sidebar-header {
@@ -68,18 +69,18 @@
     }
     .sidebar-logo {
       width: 40px; height: 40px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
       border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;
     }
     .sidebar-title { font-size: 20px; font-weight: 700; }
     .nav-section { margin-bottom: 24px; }
-    .nav-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #a0aec0; margin-bottom: 12px; font-weight: 600; }
+    .nav-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 12px; font-weight: 600; }
     .nav-item {
       padding: 12px 16px; margin-bottom: 4px; cursor: pointer; border-radius: 8px;
       transition: all 0.2s; display: flex; align-items: center; gap: 12px; font-size: 14px;
     }
     .nav-item:hover { background: rgba(255,255,255,0.1); }
-    .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 6px rgba(0,112,243,0.3); }
+    .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 6px rgba(14,165,233,0.3); }
     .nav-icon { width: 20px; text-align: center; }
     .main-content { margin-left: 260px; flex: 1; padding: 32px 40px; }
     .page-header { margin-bottom: 32px; }
@@ -89,7 +90,7 @@
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
     .card-title { font-size: 18px; font-weight: 600; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; }
+    .stat-card { background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%); padding: 20px; border-radius: 12px; color: white; }
     .stat-value { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
     .stat-label { font-size: 14px; opacity: 0.9; }
     .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -99,21 +100,27 @@
     table { width: 100%; border-collapse: collapse; }
     .table-container { overflow-x: auto; }
     th, td { padding: 14px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; }
-    th { background: #f7fafc; font-weight: 600; color: #4a5568; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-    tr:hover { background: #f7fafc; }
+    th { background: #f0f9ff; font-weight: 600; color: #475569; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+    tr:hover { background: #f0f9ff; }
     .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-dark); }
     .btn-danger { background: var(--danger); color: white; }
     .btn-danger:hover { opacity: 0.9; }
     .btn-sm { padding: 6px 12px; font-size: 13px; }
-    .url-badge { display: inline-block; padding: 4px 10px; background: #edf2f7; border-radius: 6px; font-size: 12px; color: #4a5568; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-    .url-badge:hover { background: #e2e8f0; }
+    .url-badge { display: inline-block; padding: 6px 12px; background: var(--primary-lighter); border-radius: 8px; font-size: 13px; color: var(--primary-dark); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(14,165,233,0.2); }
+    .url-badge:hover { background: var(--primary-light); color: white; border-color: var(--primary-light); }
+    .url-card { background: var(--primary-lighter); border: 1px solid rgba(14,165,233,0.2); border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.3s; }
+    .url-card:hover { background: var(--primary); border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 16px rgba(14,165,233,0.2); }
+    .url-card:hover .url-title, .url-card:hover .url-count { color: white; }
+    .url-title { font-weight: 600; color: var(--primary-dark); margin-bottom: 8px; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .url-count { font-size: 12px; color: var(--text-light); }
+    .url-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
     .tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
-    .tag-blue { background: #bee3f8; color: #2c5282; }
-    .tag-green { background: #c6f6d5; color: #22543d; }
-    .tag-gray { background: #e2e8f0; color: #4a5568; }
-    .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; }
+    .tag-blue { background: #e0f2fe; color: #0369a1; }
+    .tag-green { background: #dcfce7; color: #15803d; }
+    .tag-gray { background: #f1f5f9; color: #475569; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; }
     .user-info { display: flex; align-items: center; gap: 12px; }
     .user-details { display: flex; flex-direction: column; }
     .user-name { font-weight: 600; }
@@ -122,6 +129,11 @@
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
     .empty-state-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
     .loading { text-align: center; padding: 40px; color: var(--text-light); }
+    .comments-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+    .comments-main { min-width: 0; }
+    .comments-sidebar { min-width: 0; }
+    .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .section-icon { width: 20px; height: 20px; }
   </style>
 </head>
 <body>
@@ -331,6 +343,11 @@
       });
       const urls = Object.keys(urlGroups);
       
+      // 获取最新评论（按时间排序的前 10 条）
+      const latestComments = [...data.comments].sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      ).slice(0, 10);
+      
       // 筛选
       let filtered = data.comments;
       if (filters.url !== 'all') {
@@ -360,60 +377,115 @@
           </div>
         </div>
         
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">评论列表</h3>
+        <div class="comments-layout">
+          <div class="comments-main">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">💬 全部评论列表</h3>
+              </div>
+              <div class="filters">
+                <select class="filter-select" onchange="filters.url=this.value; renderComments()">
+                  <option value="all">全部页面</option>
+                  ${urls.map(url => `<option value="${url}" ${filters.url === url ? 'selected' : ''}>${url}</option>`).join('')}
+                </select>
+                <input type="text" class="filter-input" placeholder="搜索评论..." value="${filters.comment}" 
+                       oninput="filters.comment=this.value; renderComments()">
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>用户</th>
+                      <th>内容</th>
+                      <th>URL</th>
+                      <th>时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.length === 0 ? `
+                      <tr>
+                        <td colspan="5" class="empty-state">
+                          <div class="empty-state-icon">📭</div>
+                          <div>暂无评论</div>
+                        </td>
+                      </tr>
+                    ` : filtered.map(c => `
+                      <tr>
+                        <td>
+                          <div class="user-info">
+                            <div class="avatar">${c.nickname[0].toUpperCase()}</div>
+                            <div class="user-details">
+                              <div class="user-name">${c.nickname}</div>
+                              ${c.location ? `<div class="user-email">${c.location}</div>` : ''}
+                            </div>
+                          </div>
+                        </td>
+                        <td style="max-width: 300px;">${c.content}</td>
+                        <td><span class="url-badge" title="${c.page_url}" onclick="filters.url='${c.page_url}'; renderComments()">${c.page_url}</span></td>
+                        <td>${new Date(c.created_at).toLocaleString('zh-CN')}</td>
+                        <td>
+                          <div class="action-buttons">
+                            <button class="btn btn-danger btn-sm" onclick="deleteComment(${c.id})">删除</button>
+                          </div>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-          <div class="filters">
-            <select class="filter-select" onchange="filters.url=this.value; renderComments()">
-              <option value="all">全部页面</option>
-              ${urls.map(url => `<option value="${url}" ${filters.url === url ? 'selected' : ''}>${url}</option>`).join('')}
-            </select>
-            <input type="text" class="filter-input" placeholder="搜索评论..." value="${filters.comment}" 
-                   oninput="filters.comment=this.value; renderComments()">
-          </div>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>用户</th>
-                  <th>内容</th>
-                  <th>URL</th>
-                  <th>时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${filtered.length === 0 ? `
-                  <tr>
-                    <td colspan="5" class="empty-state">
-                      <div class="empty-state-icon">📭</div>
-                      <div>暂无评论</div>
-                    </td>
-                  </tr>
-                ` : filtered.map(c => `
-                  <tr>
-                    <td>
-                      <div class="user-info">
-                        <div class="avatar">${c.nickname[0].toUpperCase()}</div>
-                        <div class="user-details">
-                          <div class="user-name">${c.nickname}</div>
-                          ${c.location ? `<div class="user-email">${c.location}</div>` : ''}
-                        </div>
-                      </div>
-                    </td>
-                    <td style="max-width: 300px;">${c.content}</td>
-                    <td><span class="url-badge" title="${c.page_url}">${c.page_url}</span></td>
-                    <td>${new Date(c.created_at).toLocaleString('zh-CN')}</td>
-                    <td>
-                      <div class="action-buttons">
-                        <button class="btn btn-danger btn-sm" onclick="deleteComment(${c.id})">删除</button>
-                      </div>
-                    </td>
-                  </tr>
+          
+          <div class="comments-sidebar">
+            <div class="card">
+              <div class="section-title">
+                <span class="section-icon">🕒</span>
+                最新评论
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                ${latestComments.length === 0 ? `
+                  <div class="empty-state" style="padding: 20px;">
+                    <div>暂无评论</div>
+                  </div>
+                ` : latestComments.map(c => `
+                  <div style="padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 3px solid var(--primary);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                      <span style="font-weight: 600; color: var(--text);">${c.nickname}</span>
+                      <span style="font-size: 11px; color: var(--text-light);">${new Date(c.created_at).toLocaleString('zh-CN')}</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text); margin-bottom: 8px; line-height: 1.5; max-height: 60px; overflow: hidden;">
+                      ${c.content.length > 50 ? c.content.substring(0, 50) + '...' : c.content}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span class="url-badge" style="font-size: 11px; padding: 3px 8px;" onclick="filters.url='${c.page_url}'; renderComments()" title="${c.page_url}">
+                        ${c.page_url.length > 20 ? c.page_url.substring(0, 20) + '...' : c.page_url}
+                      </span>
+                      <button class="btn btn-danger btn-sm" onclick="deleteComment(${c.id})" style="padding: 4px 8px; font-size: 12px;">删除</button>
+                    </div>
+                  </div>
                 `).join('')}
-              </tbody>
-            </table>
+              </div>
+            </div>
+            
+            <div class="card">
+              <div class="section-title">
+                <span class="section-icon">📄</span>
+                文章 URL 导航
+              </div>
+              <div class="url-grid" style="grid-template-columns: 1fr; gap: 10px;">
+                ${urls.length === 0 ? `
+                  <div class="empty-state" style="padding: 20px;">
+                    <div>暂无 URL</div>
+                  </div>
+                ` : urls.map(url => `
+                  <div class="url-card" onclick="filters.url='${url}'; renderComments()">
+                    <div class="url-title" title="${url}">${url}</div>
+                    <div class="url-count">${urlGroups[url].length} 条评论</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
           </div>
         </div>
       `;
