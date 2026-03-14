@@ -761,30 +761,6 @@ export default {
       }
     };
 
-    document.getElementById('form-toggle').onclick = () => {
-      const form = document.getElementById('comment-form-container');
-      form.classList.add('expanded');
-      document.getElementById('form-toggle').style.display = 'none';
-      
-      // 延迟触发动画
-      setTimeout(() => {
-        form.style.display = 'block';
-      }, 10);
-    };
-
-    document.getElementById('close-form').onclick = () => {
-      const form = document.getElementById('comment-form-container');
-      form.classList.remove('expanded');
-      
-      // 等待动画完成后隐藏
-      setTimeout(() => {
-        form.style.display = 'none';
-        document.getElementById('form-toggle').style.display = 'flex';
-        window.cancelReply();
-      }, 400);
-    };
-
-    document.getElementById('submit-comment').onclick = submitComment;
     document.getElementById('submit-comment-fixed').onclick = submitCommentFixed;
     document.getElementById('auth-status-btn').onclick = () => {
       if (currentUser) {
@@ -1404,16 +1380,6 @@ export default {
 
   window.setReply = function(id, nickname) {
     replyingTo = id;
-    const form = document.getElementById('comment-form-container');
-    form.classList.add('expanded');
-    document.getElementById('form-toggle').style.display = 'none';
-    
-    // 延迟触发动画
-    setTimeout(() => {
-      form.style.display = 'block';
-    }, 10);
-    
-    document.getElementById('form-title').innerText = '回复评论';
     document.getElementById('reply-info').innerHTML = \`
       <div class="reply-target">
         <span>回复 @\${nickname}</span>
