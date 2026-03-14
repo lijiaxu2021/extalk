@@ -282,6 +282,63 @@ export default {
       transform: translateY(0);
       max-height: 500px;
     }
+    
+    /* 常驻底部的极简评论框 */
+    .comment-form-fixed {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s;
+    }
+    .comment-form-fixed:focus-within {
+      border-color: #0070f3;
+      box-shadow: 0 4px 16px rgba(0, 112, 243, 0.15);
+    }
+    .comment-input-fixed {
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 14px;
+      color: #333;
+      background: transparent;
+      font-family: inherit;
+      line-height: 1.6;
+    }
+    .comment-input-fixed::placeholder {
+      color: #a0aec0;
+    }
+    .submit-btn-fixed {
+      padding: 10px 24px;
+      background: #0070f3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .submit-btn-fixed:hover {
+      background: #0056cc;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 112, 243, 0.2);
+    }
+    .submit-btn-fixed:active {
+      transform: translateY(0);
+    }
+    .submit-btn-fixed:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
     .form-toggle-btn {
       display: flex;
       align-items: center;
@@ -639,30 +696,25 @@ export default {
   function renderApp(container) {
     container.innerHTML = \`
       <div id="views-counter" class="views-info"></div>
-      <div id="form-toggle" class="form-toggle-btn">
-        <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-        <span>点击发送评论</span>
+      
+      <!-- 常驻底部的极简评论框 -->
+      <div id="comment-form-fixed" class="comment-form-fixed">
+        <textarea id="comment-content" class="comment-input-fixed" placeholder="写下你的想法...（点击发送按钮）" style="flex:1; border:none; outline:none; resize:none; font-size:14px; color:#333; background:transparent;"></textarea>
+        <button id="submit-comment-fixed" class="submit-btn-fixed">发送</button>
       </div>
-      <div id="comment-form-container" class="comment-form">
-        <div class="form-title">
-          <div style="display:flex; align-items:center; gap:10px">
-            <span id="form-title">发表评论</span>
-            <span id="close-form" class="close-form-btn">收起</span>
-          </div>
-          <span class="auth-btn" id="auth-status-btn">登录/注册</span>
-        </div>
-        <div id="reply-info"></div>
-        <div class="input-group">
-          <input type="text" id="comment-nickname" class="comment-input" placeholder="您的昵称" required />
-        </div>
-        <div class="input-group">
-          <textarea id="comment-content" class="comment-input" style="height: 120px; resize: vertical;" placeholder="写下你的想法..." required></textarea>
-        </div>
-        <div id="hcaptcha-container" style="margin-bottom: 15px;"></div>
-        <button id="submit-comment" class="submit-btn">发布评论</button>
-      </div>
+      
       <div id="comments-list">正在加载评论...</div>
       <div id="pagination-container" class="pagination"></div>
+      
+      <!-- 验证弹窗 -->
+      <div id="verify-modal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:450px;">
+          <div class="modal-title">验证身份</div>
+          <div id="verify-content">
+            <!-- 动态内容：昵称输入或登录表单 -->
+          </div>
+        </div>
+      </div>
       
       <div id="auth-modal" class="modal">
         <div class="modal-content">
@@ -733,6 +785,7 @@ export default {
     };
 
     document.getElementById('submit-comment').onclick = submitComment;
+    document.getElementById('submit-comment-fixed').onclick = submitCommentFixed;
     document.getElementById('auth-status-btn').onclick = () => {
       if (currentUser) {
         if(confirm('确定登出当前账户？')) {
@@ -1449,22 +1502,155 @@ export default {
     } catch(e) { alert('请求失败'); }
   };
 
-  async function submitComment() {
+  // 常驻评论框的提交逻辑
+  async function submitCommentFixed() {
     const contentInput = document.getElementById('comment-content');
     const content = contentInput.value.trim();
-    const nickname = document.getElementById('comment-nickname').value.trim();
     
-    let hcaptchaToken = null;
-    if (window.hcaptcha && hcaptchaWidgetId !== null) {
-      hcaptchaToken = window.hcaptcha.getResponse(hcaptchaWidgetId);
-    } else {
-      hcaptchaToken = document.querySelector('[name="h-captcha-response"]')?.value;
+    if (!content) {
+      alert('请输入评论内容');
+      return;
     }
     
-    if (!content || !nickname || !hcaptchaToken) return alert('请填写完整昵称、内容并完成人机验证');
-    if (content.length > maxCommentLength) return alert(\`评论内容过长，不能超过 \${maxCommentLength} 个字符\`);
-    const submitBtn = document.getElementById('submit-comment');
-    submitBtn.disabled = true; submitBtn.innerText = '正在发布...';
+    // 检查是否已登录
+    if (currentUser) {
+      // 已登录，直接显示人机验证
+      showVerifyModal('captcha', content);
+    } else {
+      // 未登录，显示昵称输入
+      showVerifyModal('nickname', content);
+    }
+  }
+  
+  // 显示验证弹窗
+  function showVerifyModal(type, content) {
+    const modal = document.getElementById('verify-modal');
+    const verifyContent = document.getElementById('verify-content');
+    
+    if (type === 'nickname') {
+      // 显示昵称输入框
+      verifyContent.innerHTML = \`
+        <div style="padding:20px 0;">
+          <p style="margin-bottom:15px; color:#4a5568; font-size:14px;">请输入您的昵称</p>
+          <input type="text" id="verify-nickname" class="comment-input" placeholder="昵称" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; margin-bottom:15px;" autofocus />
+          <div id="verify-hcaptcha"></div>
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button id="verify-cancel" style="flex:1; padding:10px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; font-size:14px;">取消</button>
+            <button id="verify-submit" style="flex:1; padding:10px; background:#0070f3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">发表评论</button>
+          </div>
+          <p style="margin-top:15px; font-size:12px; color:#718096; text-align:center;">
+            已有账号？<a href="javascript:void(0)" id="verify-login-link" style="color:#0070f3; text-decoration:none;">点击登录</a>
+          </p>
+        </div>
+      \`;
+      
+      // 绑定事件
+      setTimeout(() => {
+        document.getElementById('verify-nickname').focus();
+        
+        // 加载 hCaptcha
+        loadHcaptchaForVerify();
+        
+        // 取消按钮
+        document.getElementById('verify-cancel').onclick = () => {
+          modal.style.display = 'none';
+        };
+        
+        // 提交按钮
+        document.getElementById('verify-submit').onclick = () => {
+          const nickname = document.getElementById('verify-nickname').value.trim();
+          if (!nickname) {
+            alert('请输入昵称');
+            return;
+          }
+          
+          const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(hcaptchaWidgetId) : null;
+          if (!hcaptchaToken) {
+            alert('请先完成人机验证');
+            return;
+          }
+          
+          // 执行提交
+          executeSubmit(nickname, content, hcaptchaToken);
+        };
+        
+        // 登录链接
+        document.getElementById('verify-login-link').onclick = () => {
+          modal.style.display = 'none';
+          showAuthModal();
+        };
+      }, 100);
+      
+    } else if (type === 'captcha') {
+      // 已登录，只显示人机验证
+      verifyContent.innerHTML = \`
+        <div style="padding:20px 0;">
+          <p style="margin-bottom:15px; color:#4a5568; font-size:14px;">完成人机验证以发表评论</p>
+          <div id="verify-hcaptcha"></div>
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button id="verify-cancel" style="flex:1; padding:10px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; font-size:14px;">取消</button>
+            <button id="verify-submit" style="flex:1; padding:10px; background:#0070f3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">发表评论</button>
+          </div>
+        </div>
+      \`;
+      
+      setTimeout(() => {
+        loadHcaptchaForVerify();
+        
+        document.getElementById('verify-cancel').onclick = () => {
+          modal.style.display = 'none';
+        };
+        
+        document.getElementById('verify-submit').onclick = () => {
+          const hcaptchaToken = window.hcaptcha ? window.hcaptcha.getResponse(hcaptchaWidgetId) : null;
+          if (!hcaptchaToken) {
+            alert('请先完成人机验证');
+            return;
+          }
+          
+          // 使用已登录用户信息提交
+          executeSubmit(currentUser.nickname, content, hcaptchaToken);
+        };
+      }, 100);
+    }
+    
+    modal.style.display = 'flex';
+  }
+  
+  // 为验证弹窗加载 hCaptcha
+  function loadHcaptchaForVerify() {
+    if (!window.hcaptcha) {
+      const script = document.createElement('script');
+      script.src = 'https://js.hcaptcha.com/1/api.js';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+      
+      script.onload = () => {
+        hcaptchaWidgetId = window.hcaptcha.render('verify-hcaptcha', { 
+          sitekey: HCAPTCHA_SITE_KEY,
+          theme: 'light'
+        });
+      };
+    } else {
+      hcaptchaWidgetId = window.hcaptcha.render('verify-hcaptcha', { 
+        sitekey: HCAPTCHA_SITE_KEY,
+        theme: 'light'
+      });
+    }
+  }
+  
+  // 执行提交操作
+  async function executeSubmit(nickname, content, hcaptchaToken) {
+    if (content.length > maxCommentLength) {
+      alert(\`评论内容过长，不能超过 \${maxCommentLength} 个字符\`);
+      return;
+    }
+    
+    const submitBtn = document.getElementById('verify-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerText = '正在发布...';
+    
     try {
       const res = await fetch(\`\${API_ENDPOINT}/comments\`, {
         method: 'POST',
@@ -1479,34 +1665,34 @@ export default {
       });
       
       if (res.ok) {
-        contentInput.value = '';
+        // 关闭弹窗
+        document.getElementById('verify-modal').style.display = 'none';
+        
+        // 清空输入框
+        document.getElementById('comment-content').value = '';
         cancelReply();
+        
+        // 重置 hCaptcha
         if (window.hcaptcha && hcaptchaWidgetId !== null) {
           window.hcaptcha.reset(hcaptchaWidgetId);
         }
+        
         // 重置到第一页并重新加载所有评论
         currentPage = 1;
         hasMorePages = true;
         totalPages = 1;
-        infiniteScrollInitialized = false; // 重置无限滚动初始化标志
+        infiniteScrollInitialized = false;
         
-        // 清理旧的观察者
         if (observer) {
           observer.disconnect();
           observer = null;
         }
         
-        // 移除 sentinel 元素
         const oldSentinel = document.getElementById('sentinel');
-        if (oldSentinel) {
-          oldSentinel.remove();
-        }
+        if (oldSentinel) oldSentinel.remove();
         
-        // 移除加载状态提示
         const oldLoading = document.getElementById('infinite-loading');
-        if (oldLoading) {
-          oldLoading.remove();
-        }
+        if (oldLoading) oldLoading.remove();
         
         loadComments();
       } else { 
@@ -1516,8 +1702,10 @@ export default {
     } catch (err) { 
       console.error('Submit error:', err);
       alert('网络请求出错，请稍后重试'); 
+    } finally { 
+      submitBtn.disabled = false; 
+      submitBtn.innerText = '发表评论'; 
     }
-    finally { submitBtn.disabled = false; submitBtn.innerText = '发布评论'; }
   }
 
   function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
