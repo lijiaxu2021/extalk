@@ -92,22 +92,42 @@ function domainMatches(originOrReferer: string, patterns: string[]) {
   }
 }
 
-async function getIPLocation(env: Env, ip: string) {
+async function getIPLocation(env: Env, request: Request, ip: string) {
   try {
-    const locRes = await fetch("https://whois.pconline.com.cn/ipJson.jsp?ip=" + ip + "&json=true");
-    const buffer = await locRes.arrayBuffer();
-    const decoder = new TextDecoder("gbk");
-    const text = decoder.decode(buffer);
-    const locData = JSON.parse(text);
-    
-    if (locData && !locData.err) {
+    // 优先使用 Cloudflare 内置的 IP 地理位置
+    const cf = (request as any).cf;
+    if (cf) {
       const admin = await env.DB.prepare("SELECT ip_display_level FROM users WHERE role = 'admin'").first() as any;
       const level = admin?.ip_display_level || "province";
       
-      if (level === "city" && locData.city) {
-        return locData.pro === locData.city ? locData.city : (locData.pro + locData.city);
+      if (level === "city" && cf.city) {
+        return cf.city + ", " + (cf.region || cf.regionCode || "");
       }
-      return locData.pro || "未知属地";
+      if (cf.region) {
+        return cf.region;
+      }
+      if (cf.regionCode) {
+        return cf.regionCode;
+      }
+    }
+    
+    // 如果 Cloudflare 没有提供，回退到第三方 API
+    if (ip) {
+      const locRes = await fetch("https://whois.pconline.com.cn/ipJson.jsp?ip=" + ip + "&json=true");
+      const buffer = await locRes.arrayBuffer();
+      const decoder = new TextDecoder("gbk");
+      const text = decoder.decode(buffer);
+      const locData = JSON.parse(text);
+      
+      if (locData && !locData.err) {
+        const admin = await env.DB.prepare("SELECT ip_display_level FROM users WHERE role = 'admin'").first() as any;
+        const level = admin?.ip_display_level || "province";
+        
+        if (level === "city" && locData.city) {
+          return locData.pro === locData.city ? locData.city : (locData.pro + locData.city);
+        }
+        return locData.pro || "未知属地";
+      }
     }
   } catch (e) {
     console.error("Location fetch failed:", e);
@@ -235,6 +255,9 @@ export default {
   let currentLoadMode = LOAD_MODE;
   let observer = null;
   let loadMoreBtn = null;
+  
+  // 点赞防抖：记录正在点赞的评论 ID
+  const likingComments = new Set();
 
   const styles = \`
     #extalk-comments {
@@ -1354,30 +1377,51 @@ export default {
   };
 
   window.likeComment = async (id, btn) => {
-    if (localStorage.getItem('liked_comment_' + id)) return;
+    // 防抖：如果已经点过赞或正在点赞，直接返回
+    if (localStorage.getItem('liked_comment_' + id) || likingComments.has(id)) {
+      return;
+    }
+    
+    // 标记为正在点赞
+    likingComments.add(id);
+    
     try {
       const res = await fetch(\`\${API_ENDPOINT}/comment/like\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       });
+      
       if (res.ok) {
         localStorage.setItem('liked_comment_' + id, 'true');
         btn.classList.add('liked');
         const countSpan = btn.querySelector('.like-count');
         countSpan.innerText = parseInt(countSpan.innerText) + 1;
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error('Like failed:', e);
+    } finally {
+      // 移除点赞标记
+      likingComments.delete(id);
+    }
   };
 
   window.likePage = async (pageUrl) => {
-    if (localStorage.getItem('liked_page_' + pageUrl)) return;
+    // 防抖：如果已经点过赞或正在点赞，直接返回
+    if (localStorage.getItem('liked_page_' + pageUrl) || likingComments.has('page_' + pageUrl)) {
+      return;
+    }
+    
+    // 标记为正在点赞
+    likingComments.add('page_' + pageUrl);
+    
     try {
       const res = await fetch(\`\${API_ENDPOINT}/view\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ page_url: pageUrl, type: 'like' })
       });
+      
       if (res.ok) {
         localStorage.setItem('liked_page_' + pageUrl, 'true');
         const btn = document.getElementById('page-like-btn');
@@ -1385,7 +1429,12 @@ export default {
         const countSpan = document.getElementById('page-likes-count');
         countSpan.innerText = parseInt(countSpan.innerText) + 1;
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error('Page like failed:', e);
+    } finally {
+      // 移除点赞标记
+      likingComments.delete('page_' + pageUrl);
+    }
   };
 
   window.delComment = async function(id) {
@@ -2040,7 +2089,7 @@ export default {
 
       // Get IP and Location using helper
       const ip = request.headers.get("CF-Connecting-IP") || "127.0.0.1";
-      const location = await getIPLocation(env, ip);
+      const location = await getIPLocation(env, request, ip);
 
       // Optional Auth
       let userId = null;
