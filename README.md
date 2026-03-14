@@ -5,8 +5,6 @@
 ![Extalk Banner](https://img.shields.io/badge/Extalk-下一代评论系统-blue?style=for-the-badge)
 ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-f38020?style=for-the-badge&logo=Cloudflare)
 ![D1 Database](https://img.shields.io/badge/D1-Database-6c5ce7?style=for-the-badge)
-![Performance](https://img.shields.io/badge/性能 -73% 提升-brightgreen?style=for-the-badge)
-![Queries](https://img.shields.io/badge/查询优化 -40% 减少-purple?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-orange?style=for-the-badge)
 
 **极简 · 高性能 · 安全 · 全球化**
