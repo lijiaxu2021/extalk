@@ -454,50 +454,75 @@ https://your-worker.workers.dev/init-admin-999
 
 #### VitePress
 
-为所有文档页面添加评论系统：
+为所有文档页面添加评论系统，有两种方案：
 
-1. **创建自定义主题**：创建 `.vitepress/theme/index.js`
+**方案一：通过配置 head 脚本（推荐）**
+
+在 `.vitepress/config.js` 中添加：
 
 ```js
-import DefaultTheme from 'vitepress/theme'
-import { h, onMounted } from 'vue'
-
 export default {
-  extends: DefaultTheme,
-  setup() {
-    onMounted(() => {
-      // 加载 ExTalk SDK
-      const script = document.createElement('script')
-      script.src = 'https://comment.upxuu.com/sdk.js'
-      script.async = true
-      document.body.appendChild(script)
-    })
-  },
-  Layout() {
-    return h(DefaultTheme.Layout, null, {
-      // 在内容底部插入评论区
-      'doc-after': () => h('div', {
-        style: {
-          marginTop: '60px',
-          paddingTop: '40px',
-          borderTop: '1px solid var(--vp-c-divider)'
-        }
-      }, [
-        h('h2', {
-          style: {
-            fontSize: '1.5rem',
-            marginBottom: '20px',
-            color: 'var(--vp-c-text-1)'
-          }
-        }, '💬 评论'),
-        h('div', { id: 'extalk-comments', style: { marginTop: '20px' } })
-      ])
-    })
+  // ... 其他配置
+  themeConfig: {
+    // ... 其他配置
+    head: [
+      ['script', {}, `
+        window.addEventListener('load', () => {
+          setTimeout(() => {
+            const commentsDiv = document.createElement('div');
+            commentsDiv.id = 'extalk-comments';
+            commentsDiv.style.cssText = 'margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--vp-c-divider); max-width: 1152px; margin: 0 auto; padding: 40px 24px;';
+            commentsDiv.innerHTML = '<h2 style="font-size: 1.5rem; margin-bottom: 20px;">💬 评论</h2><div id="extalk-comments-inner" style="margin-top: 20px;"></div>';
+            
+            const vpContent = document.getElementById('VPContent');
+            if (vpContent) {
+              const footer = vpContent.querySelector('.VPFooter');
+              if (footer) {
+                footer.parentNode.insertBefore(commentsDiv, footer);
+              }
+              
+              const script = document.createElement('script');
+              script.src = 'https://comment.upxuu.com/sdk.js';
+              script.async = true;
+              document.body.appendChild(script);
+            }
+          }, 500);
+        });
+      `]
+    ]
   }
 }
 ```
 
-2. **使用自定义主题**：VitePress 会自动使用 `.vitepress/theme/index.js` 作为主题入口
+**方案二：自定义主题**
+
+创建 `.vitepress/theme/index.js`：
+
+```js
+import DefaultTheme from 'vitepress/theme'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app, router }) {
+    if (typeof window !== 'undefined') {
+      router.onAfterRouteChanged = () => {
+        setTimeout(() => {
+          if (!document.getElementById('extalk-comments')) {
+            const commentsDiv = document.createElement('div')
+            commentsDiv.id = 'extalk-comments'
+            const vpDoc = document.querySelector('.vp-doc')
+            if (vpDoc) vpDoc.appendChild(commentsDiv)
+            
+            const script = document.createElement('script')
+            script.src = 'https://comment.upxuu.com/sdk.js'
+            document.body.appendChild(script)
+          }
+        }, 100)
+      }
+    }
+  }
+}
+```
 
 就这么简单！所有文档页面底部都会自动显示评论区。
 
