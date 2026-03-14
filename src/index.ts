@@ -399,6 +399,16 @@ export default {
       opacity: 1;
       transform: translateX(0) translateY(0);
     }
+    // 评论滑出视口后重新进入时从右侧滑入
+    .comment-item.animate-out {
+      opacity: 0;
+      transform: translateX(100px) translateY(0);
+      transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .comment-item.animate-out.animate-in {
+      opacity: 1;
+      transform: translateX(0) translateY(0);
+    }
     .comment-header {
       display: flex;
       justify-content: space-between;
@@ -950,12 +960,12 @@ export default {
           });
         }, 10);
       } else {
-        // 其他模式：使用 Intersection Observer 逐个触发动画
+        // 其他模式：使用 Intersection Observer 逐个触发动画，并监听滑出滑入
         setTimeout(() => {
           const commentItems = Array.from(listContainer.querySelectorAll('.comment-item'));
           let currentIndex = 0;
           
-          const observer = new IntersectionObserver((entries) => {
+          const initialObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
               if (entry.isIntersecting && currentIndex < commentItems.length) {
                 // 只触发当前索引的评论项动画
@@ -963,11 +973,11 @@ export default {
                 if (currentItem && currentItem === entry.target) {
                   currentItem.classList.add('animate-in');
                   currentIndex++;
-                  observer.unobserve(currentItem);
+                  initialObserver.unobserve(currentItem);
                   
                   // 观察下一个评论项
                   if (currentIndex < commentItems.length) {
-                    observer.observe(commentItems[currentIndex]);
+                    initialObserver.observe(commentItems[currentIndex]);
                   }
                 }
               }
@@ -979,8 +989,11 @@ export default {
           
           // 从第一个评论项开始观察
           if (commentItems.length > 0) {
-            observer.observe(commentItems[0]);
+            initialObserver.observe(commentItems[0]);
           }
+          
+          // 为所有评论添加滑出滑入监听
+          setupCommentReanimate(commentItems);
         }, 100);
       }
     } catch (err) { console.error(err); }
@@ -1082,6 +1095,33 @@ export default {
     
     observer.observe(lastComment);
   }
+  
+  // 为评论添加滑出滑入监听 - 所有模式通用
+  function setupCommentReanimate(commentItems) {
+    const reanimateObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const item = entry.target;
+        if (entry.isIntersecting) {
+          // 进入视口：如果之前标记为滑出，则从右侧滑入
+          if (item.classList.contains('animate-out')) {
+            item.classList.add('animate-in');
+          }
+        } else {
+          // 离开视口：标记为滑出状态
+          item.classList.add('animate-out');
+          item.classList.remove('animate-in');
+        }
+      });
+    }, {
+      root: null,
+      rootMargin: '50px',
+      threshold: 0
+    });
+    
+    commentItems.forEach(item => {
+      reanimateObserver.observe(item);
+    });
+  }
 
   // 加载更多按钮模式
   window.loadMore = function() {
@@ -1103,10 +1143,15 @@ export default {
     isLoading = true;
     currentPage++;
     
-    // 显示加载状态
+    // 延迟显示加载状态（2 秒后如果还没加载完才显示）
     const loadingDiv = document.getElementById('infinite-loading');
+    let loadingTimer = null;
     if (loadingDiv) {
-      loadingDiv.style.display = 'block';
+      loadingTimer = setTimeout(() => {
+        if (isLoading) {
+          loadingDiv.style.display = 'block';
+        }
+      }, 2000);
     }
     
     try {
@@ -1118,6 +1163,7 @@ export default {
       if (newComments.length === 0) {
         hasMorePages = false;
         isLoading = false;
+        if (loadingTimer) clearTimeout(loadingTimer);
         if (loadingDiv) {
           loadingDiv.style.display = 'none';
         }
@@ -1203,6 +1249,10 @@ export default {
           if (currentIndex < allItems.length) {
             infiniteObserver.observe(allItems[currentIndex]);
           }
+          
+          // 为新评论添加滑出滑入监听
+          const newItems = Array.from(allItems).slice(startIndex);
+          setupCommentReanimate(newItems);
         }, 100);
       } else {
         // 其他模式保持原有动画逻辑
@@ -1234,8 +1284,9 @@ export default {
       currentPage--; // 回滚页码
     } finally {
       isLoading = false;
-      // 隐藏加载状态
+      // 清除定时器并隐藏加载状态
       const loadingDiv = document.getElementById('infinite-loading');
+      if (loadingTimer) clearTimeout(loadingTimer);
       if (loadingDiv) {
         loadingDiv.style.display = 'none';
       }
