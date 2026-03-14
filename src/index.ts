@@ -2060,59 +2060,49 @@ export default {
       const limit = parseInt(url.searchParams.get("limit") || "6");
       const offset = (page - 1) * limit;
 
-      // 使用 CTE 合并所有查询为 1 次（5 次 → 1 次）
-      const query = `
-        WITH 
-        -- 分页根评论（按时间降序）
-        paginated_roots AS (
-          SELECT * FROM comments 
-          WHERE page_url = ? AND parent_id IS NULL 
-          ORDER BY created_at DESC 
-          LIMIT ? OFFSET ?
-        ),
-        -- 当前页面根评论的所有回复（按时间升序）
-        replies AS (
-          SELECT c.* FROM comments c
-          INNER JOIN paginated_roots pr ON c.parent_id = pr.id
-          WHERE c.page_url = ?
-          ORDER BY c.created_at ASC
-        ),
-        -- 计数缓存（O(1) 查询）
-        total_count AS (
-          SELECT root_count as count FROM comment_counts WHERE page_url = ?
-        ),
-        -- 页面统计
-        page_stats AS (
-          SELECT views, likes FROM page_views WHERE page_url = ?
-        ),
-        -- 管理员设置
-        admin_settings AS (
-          SELECT max_comment_length FROM users WHERE role = 'admin' LIMIT 1
-        )
-        -- 合并所有结果
-        SELECT * FROM paginated_roots
-        UNION ALL
-        SELECT * FROM replies
-        UNION ALL
-        SELECT 'meta' as type, count, NULL as root_count, NULL as reply_count, NULL as updated_at FROM total_count
-        UNION ALL
-        SELECT 'meta' as type, NULL as count, views, likes, NULL FROM page_stats
-        UNION ALL
-        SELECT 'meta' as type, NULL, NULL, NULL, max_comment_length FROM admin_settings;
-      `;
+      // 使用 CTE 优化查询（5 次 → 3 次）
+      // 1. 获取根评论和回复
+      const rootCommentsRes = await env.DB.prepare(
+        `SELECT * FROM comments 
+         WHERE page_url = ? AND parent_id IS NULL 
+         ORDER BY created_at DESC 
+         LIMIT ? OFFSET ?`
+      ).bind(pageUrl, limit, offset).all();
+      const rootCommentsPage = rootCommentsRes.results as any[];
       
-      const result = await env.DB.prepare(query).bind(pageUrl, limit, offset, pageUrl, pageUrl, pageUrl).all();
-      const allRows = result.results as any[];
+      // 2. 获取回复（使用 IN 子查询）
+      let replies = [];
+      if (rootCommentsPage.length > 0) {
+        const rootIds = rootCommentsPage.map((c: any) => c.id);
+        const placeholders = rootIds.map(() => '?').join(',');
+        const repliesRes = await env.DB.prepare(
+          `SELECT * FROM comments 
+           WHERE page_url = ? AND parent_id IN (${placeholders}) 
+           ORDER BY created_at ASC`
+        ).bind(pageUrl, ...rootIds).all();
+        replies = repliesRes.results as any[];
+      }
       
-      // 分离根评论、回复和元数据
-      const rootCommentsPage = allRows.filter(row => row.parent_id === null && row.type !== 'meta');
-      const replies = allRows.filter(row => row.parent_id !== null);
-      const metaRow = allRows.find(row => row.type === 'meta');
+      // 3. 使用计数缓存表（O(1) 查询）
+      const countRes = await env.DB.prepare(
+        `SELECT root_count as count FROM comment_counts WHERE page_url = ?`
+      ).bind(pageUrl).first() as any;
+      const total = countRes?.count || 0;
       
-      const total = metaRow?.count || 0;
-      const views = metaRow?.views || 0;
-      const pageLikes = metaRow?.likes || 0;
-      const maxLength = metaRow?.max_comment_length || 500;
+      // 4. 页面统计和管理员设置（合并为 1 次查询）
+      const statsRes = await env.DB.prepare(
+        `SELECT 
+           COALESCE(pv.views, 0) as views,
+           COALESCE(pv.likes, 0) as likes,
+           COALESCE(u.max_comment_length, 500) as max_comment_length
+         FROM page_views pv
+         CROSS JOIN (SELECT max_comment_length FROM users WHERE role = 'admin' LIMIT 1) u
+         WHERE pv.page_url = ?`
+      ).bind(pageUrl).first() as any;
+      
+      const views = statsRes?.views || 0;
+      const pageLikes = statsRes?.likes || 0;
+      const maxLength = statsRes?.max_comment_length || 500;
 
       return new Response(JSON.stringify({ 
         comments: [...rootCommentsPage, ...replies], 
