@@ -2,11 +2,12 @@
 
 <div align="center">
 
-![Extalk Banner](https://img.shields.io/badge/Extalk-下一代评论系统-blue?style=for-the-badge)
-![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-f38020?style=for-the-badge&logo=Cloudflare)
-![D1 Database](https://img.shields.io/badge/D1-Database-6c5ce7?style=for-the-badge)
-![Performance](https://img.shields.io/badge/性能-73% 提升-brightgreen?style=for-the-badge)
-![Queries](https://img.shields.io/badge/查询优化-40% 减少-purple?style=for-the-badge)
+!\[Extalk Banner]\(<https://img.shields.io/badge/Extalk-下一代评论系统-blue?style=for-the-badge> null)
+!\[Cloudflare Workers]\(<https://img.shields.io/badge/Cloudflare-Workers-f38020?style=for-the-badge&logo=Cloudflare> null)
+!\[D1 Database]\(<https://img.shields.io/badge/D1-Database-6c5ce7?style=for-the-badge> null)
+!\[Performance]\(<<https://img.shields.io/badge/性能> -73%> 提升-brightgreen?style=for-the-badge)
+!\[Queries]\(<<https://img.shields.io/badge/查询优化> -40%> 减少-purple?style=for-the-badge)
+!\[License]\(<https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-orange?style=for-the-badge> null)
 
 **极简 · 高性能 · 安全 · 全球化**
 
@@ -16,7 +17,25 @@
 
 </div>
 
----
+***
+
+## 📝 简介
+
+**Extalk** 是一个基于 Cloudflare Workers 和 D1 数据库构建的高性能评论系统，专为静态博客（Hugo、Hexo、Jekyll 等）设计，只需一行简短的sdk引入代码即可快速上线，通过边缘计算实现全球 275+ 节点加速，首屏加载仅需 40ms，查询性能提升 73%，运行成本为零（Cloudflare 免费额度内）。
+
+核心特性包括：
+
+- 🚀 **边缘计算架构** - 全球 275+ 节点自动加速
+- ⚡ **极致性能** - 查询优化 40%，延迟降低 73%
+- 💰 **零成本运营** - Cloudflare 免费额度内运行
+- 🔒 **企业级安全** - hCaptcha 防护 + SQL 注入防护
+- 🎨 **现代化 UI** - 透明融合设计 + 丝滑动画效果
+- 📧 **智能通知** - OTP 验证 + 定时邮件汇总
+- 🎭 **三种加载模式** - 分页/无限滚动/加载更多
+
+> 📜 **开源协议**：本项目采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 协议，允许自由使用、修改和分享，但**禁止商业用途**。
+
+***
 
 ## 📖 目录
 
@@ -29,11 +48,12 @@
 - [常见问题](#-常见问题)
 - [贡献指南](#-贡献指南)
 
----
+***
 
 ## ✨ 特性亮点
 
 ### 🎨 极致用户体验
+
 - **✨ 透明融合 UI** - 完美融入任何博客主题，告别"框中框"设计
 - **🎯 折叠式评论框** - 默认收起，点击展开，零干扰阅读体验
 - **♾️ 无限嵌套回复** - 支持多级对话，逻辑清晰如聊天
@@ -41,12 +61,14 @@
 - **💫 丝滑动画效果** - 评论滑入滑出，流畅如丝
 
 ### 📊 数据驱动互动
+
 - **📈 实时浏览量** - 精准统计，零隐私泄露
 - **👍 双重点赞系统** - 文章点赞 + 评论点赞，互动率提升 200%
 - **🏷️ 智能楼层显示** - 自动计算楼层号，快速定位热评
 - **🌍 IP 属地展示** - 省份/城市两级精度，增强真实感
 
 ### 🛡️ 企业级安全
+
 - **🤖 hCaptcha 防护** - 99.9% 机器人拦截率
 - **🔐 JWT 认证** - 银行级加密，安全无忧
 - **🔒 CORS 域名锁** - 仅限授权域名访问
@@ -54,11 +76,12 @@
 - **🎯 SQL 注入防护** - 参数化查询，零漏洞
 
 ### 📧 智能通知系统
+
 - **✉️ OTP 验证注册** - 确保邮箱真实有效
 - **📬 定时汇总邮件** - 自定义频率，不错过任何评论
 - **🎨 HTML 邮件模板** - 精美设计，包含统计图表
 
----
+***
 
 ## 🏗️ 系统架构
 
@@ -283,65 +306,49 @@ flowchart LR
     style Effect fill:#ffeaa7,stroke:#333,stroke-width:2px
 ```
 
----
+***
 
 ## 📊 竞品对比
 
 ### 主流开源评论系统对比
 
-```mermaid
-quadrantChart
-    title "评论系统性能与功能对比"
-    x-axis "部署复杂 → 简单" --> "部署简单"
-    y-axis "功能少" --> "功能丰富"
-    quadrant-1 "🌟 最佳选择"
-    quadrant-2 "⚙️ 功能强大但复杂"
-    quadrant-3 "💭 轻量简单"
-    quadrant-4 "🚀 简单但功能有限"
-    "Extalk": [0.85, 0.80]
-    "Waline": [0.60, 0.85]
-    "Twikoo": [0.70, 0.75]
-    "Giscus": [0.90, 0.40]
-    "Utterances": [0.95, 0.30]
-```
-
 ### 详细功能对比表
 
-| 特性 | **Extalk** 🌟 | Waline | Twikoo | Giscus | Utterances |
-|------|--------------|--------|--------|--------|------------|
-| **架构** | Cloudflare Workers | Node.js | Cloudflare Workers | GitHub App | GitHub App |
-| **数据库** | D1 (SQLite) | MySQL/MongoDB | MongoDB | GitHub Discussions | GitHub Issues |
-| **部署难度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **运行成本** | 💰 免费额度 | 💰💰 服务器费用 | 💰💰 云函数费用 | 💰 免费 | 💰 免费 |
-| **全球加速** | ✅ 275+ 节点 | ❌ 单节点 | ⚠️ 依赖云函数 | ✅ GitHub CDN | ✅ GitHub CDN |
-| **性能优化** | ✅ 73% 提升 | ⚠️ 一般 | ⚠️ 一般 | ✅ 快 | ✅ 快 |
-| **查询优化** | ✅ 5 次→3 次 | ❌ 多次查询 | ❌ 多次查询 | ✅ 单次 | ✅ 单次 |
-| **计数缓存** | ✅ 触发器自动 | ❌ 实时计算 | ❌ 实时计算 | ✅ GitHub 统计 | ✅ GitHub 统计 |
-| **防抖机制** | ✅ 点赞防抖 | ❌ 无 | ❌ 无 | ❌ 无 | ❌ 无 |
-| **加载模式** | ✅ 3 种模式 | ⚠️ 分页 | ⚠️ 无限滚动 | ⚠️ 无限滚动 | ⚠️ 无限滚动 |
-| **邮件通知** | ✅ Resend | ✅ 多渠道 | ✅ 邮件 | ❌ 无 | ❌ 无 |
-| **评论审核** | ✅ 管理后台 | ✅ 后台 | ✅ 后台 | ❌ 无审核 | ❌ 无审核 |
-| **用户系统** | ✅ JWT+OTP | ✅ 多种登录 | ✅ 匿名 | ⚠️ GitHub 账号 | ⚠️ GitHub 账号 |
-| **IP 属地** | ✅ 自动获取 | ❌ 需配置 | ❌ 需配置 | ❌ 无 | ❌ 无 |
-| **浏览量统计** | ✅ 内置 | ✅ 内置 | ✅ 内置 | ❌ 无 | ❌ 无 |
-| **点赞系统** | ✅ 双重点赞 | ✅ 评论点赞 | ✅ 评论点赞 | ✅ 讨论点赞 | ✅ Issue 点赞 |
-| **动画效果** | ✅ 丝滑动画 | ⚠️ 基础 | ⚠️ 基础 | ⚠️ 基础 | ⚠️ 基础 |
-| **CORS 保护** | ✅ 域名白名单 | ⚠️ 可选 | ⚠️ 可选 | ❌ 无限制 | ❌ 无限制 |
-| **频率限制** | ✅ 智能限流 | ⚠️ 基础 | ⚠️ 基础 | ❌ 无 | ❌ 无 |
-| **hCaptcha** | ✅ 全程防护 | ❌ 无 | ❌ 无 | ❌ 无 | ❌ 无 |
-| **SQL 注入防护** | ✅ 参数化查询 | ✅ 参数化 | ✅ 参数化 | ✅ GitHub API | ✅ GitHub API |
-| **支持静态博客** | ✅ 全平台 | ✅ 全平台 | ✅ 全平台 | ✅ 全平台 | ✅ 全平台 |
-| **管理后台** | ✅ 完整功能 | ✅ 完整 | ✅ 基础 | ❌ 无 | ❌ 无 |
-| **数据导出** | ✅ SQL 导出 | ✅ 导出工具 | ✅ 导出 | ⚠️ GitHub 导出 | ⚠️ GitHub 导出 |
-| **自定义主题** | ✅ CSS 变量 | ✅ 多主题 | ✅ 自定义 | ⚠️ 有限 | ⚠️ 有限 |
-| **嵌套回复** | ✅ 无限层级 | ✅ 无限 | ✅ 无限 | ❌ 线性 | ❌ 线性 |
-| **楼层显示** | ✅ 自动计算 | ✅ 显示 | ❌ 无 | ❌ 无 | ❌ 无 |
-| **SDK 体积** | 📦 <50KB | 📦 ~100KB | 📦 ~80KB | 📦 ~30KB | 📦 ~20KB |
-| **首屏加载** | ⚡ ~40ms | ⚡ ~100ms | ⚡ ~80ms | ⚡ ~50ms | ⚡ ~30ms |
-| **GitHub Stars** | 🌟 新星 | ⭐ 8.2k+ | ⭐ 2.5k+ | ⭐ 12k+ | ⭐ 5.8k+ |
-| **开源协议** | MIT | AGPL-3.0 | MIT | MIT | MIT |
-| **文档完善度** | ✅ 详细 | ✅ 详细 | ⚠️ 一般 | ✅ 详细 | ⚠️ 简单 |
-| **社区活跃度** | 🔥 上升期 | 🔥 高 | 🔥 中 | 🔥 高 | 🔥 中 |
+| 特性               | **Extalk** 🌟      | Waline        | Twikoo             | Giscus             | Utterances    |
+| ---------------- | ------------------ | ------------- | ------------------ | ------------------ | ------------- |
+| **架构**           | Cloudflare Workers | Node.js       | Cloudflare Workers | GitHub App         | GitHub App    |
+| **数据库**          | D1 (SQLite)        | MySQL/MongoDB | MongoDB            | GitHub Discussions | GitHub Issues |
+| **部署难度**         | ⭐⭐⭐⭐⭐              | ⭐⭐⭐           | ⭐⭐⭐⭐               | ⭐⭐⭐⭐⭐              | ⭐⭐⭐⭐⭐         |
+| **运行成本**         | 💰 免费额度            | 💰💰 服务器费用    | 💰💰 云函数费用         | 💰 免费              | 💰 免费         |
+| **全球加速**         | ✅ 275+ 节点          | ❌ 单节点         | ⚠️ 依赖云函数           | ✅ GitHub CDN       | ✅ GitHub CDN  |
+| **性能优化**         | ✅ 73% 提升           | ⚠️ 一般         | ⚠️ 一般              | ✅ 快                | ✅ 快           |
+| **查询优化**         | ✅ 5 次→3 次          | ❌ 多次查询        | ❌ 多次查询             | ✅ 单次               | ✅ 单次          |
+| **计数缓存**         | ✅ 触发器自动            | ❌ 实时计算        | ❌ 实时计算             | ✅ GitHub 统计        | ✅ GitHub 统计   |
+| **防抖机制**         | ✅ 点赞防抖             | ❌ 无           | ❌ 无                | ❌ 无                | ❌ 无           |
+| **加载模式**         | ✅ 3 种模式            | ⚠️ 分页         | ⚠️ 无限滚动            | ⚠️ 无限滚动            | ⚠️ 无限滚动       |
+| **邮件通知**         | ✅ Resend           | ✅ 多渠道         | ✅ 邮件               | ❌ 无                | ❌ 无           |
+| **评论审核**         | ✅ 管理后台             | ✅ 后台          | ✅ 后台               | ❌ 无审核              | ❌ 无审核         |
+| **用户系统**         | ✅ JWT+OTP          | ✅ 多种登录        | ✅ 匿名               | ⚠️ GitHub 账号       | ⚠️ GitHub 账号  |
+| **IP 属地**        | ✅ 自动获取             | ❌ 需配置         | ❌ 需配置              | ❌ 无                | ❌ 无           |
+| **浏览量统计**        | ✅ 内置               | ✅ 内置          | ✅ 内置               | ❌ 无                | ❌ 无           |
+| **点赞系统**         | ✅ 双重点赞             | ✅ 评论点赞        | ✅ 评论点赞             | ✅ 讨论点赞             | ✅ Issue 点赞    |
+| **动画效果**         | ✅ 丝滑动画             | ⚠️ 基础         | ⚠️ 基础              | ⚠️ 基础              | ⚠️ 基础         |
+| **CORS 保护**      | ✅ 域名白名单            | ⚠️ 可选         | ⚠️ 可选              | ❌ 无限制              | ❌ 无限制         |
+| **频率限制**         | ✅ 智能限流             | ⚠️ 基础         | ⚠️ 基础              | ❌ 无                | ❌ 无           |
+| **hCaptcha**     | ✅ 全程防护             | ❌ 无           | ❌ 无                | ❌ 无                | ❌ 无           |
+| **SQL 注入防护**     | ✅ 参数化查询            | ✅ 参数化         | ✅ 参数化              | ✅ GitHub API       | ✅ GitHub API  |
+| **支持静态博客**       | ✅ 全平台              | ✅ 全平台         | ✅ 全平台              | ✅ 全平台              | ✅ 全平台         |
+| **管理后台**         | ✅ 完整功能             | ✅ 完整          | ✅ 基础               | ❌ 无                | ❌ 无           |
+| **数据导出**         | ✅ SQL 导出           | ✅ 导出工具        | ✅ 导出               | ⚠️ GitHub 导出       | ⚠️ GitHub 导出  |
+| **自定义主题**        | ✅ CSS 变量           | ✅ 多主题         | ✅ 自定义              | ⚠️ 有限              | ⚠️ 有限         |
+| **嵌套回复**         | ✅ 无限层级             | ✅ 无限          | ✅ 无限               | ❌ 线性               | ❌ 线性          |
+| **楼层显示**         | ✅ 自动计算             | ✅ 显示          | ❌ 无                | ❌ 无                | ❌ 无           |
+| **SDK 体积**       | 📦 <50KB           | 📦 \~100KB    | 📦 \~80KB          | 📦 \~30KB          | 📦 \~20KB     |
+| **首屏加载**         | ⚡ \~40ms           | ⚡ \~100ms     | ⚡ \~80ms           | ⚡ \~50ms           | ⚡ \~30ms      |
+| **GitHub Stars** | 🌟 新星              | ⭐ 8.2k+       | ⭐ 2.5k+            | ⭐ 12k+             | ⭐ 5.8k+       |
+| **开源协议**         | MIT                | AGPL-3.0      | MIT                | MIT                | MIT           |
+| **文档完善度**        | ✅ 详细               | ✅ 详细          | ⚠️ 一般              | ✅ 详细               | ⚠️ 简单         |
+| **社区活跃度**        | 🔥 上升期             | 🔥 高          | 🔥 中               | 🔥 高               | 🔥 中          |
 
 ### 核心优势对比
 
@@ -379,13 +386,13 @@ mindmap
 
 #### 各竞品适用场景
 
-| 评论系统 | 最佳适用场景 | 不适用场景 |
-|----------|-------------|-----------|
-| **Extalk** 🌟 | • 追求极致性能<br>• 需要完整功能<br>• 零成本运营<br>• 全球化用户 | • 需要自定义服务器 |
-| **Waline** | • 需要多种登录方式<br>• 已有 MySQL/MongoDB<br>• 需要 AGPL 开源 | • 不想维护服务器<br>• 成本敏感 |
-| **Twikoo** | • 喜欢 MongoDB<br>• 需要微信登录<br>• 国内用户为主 | • 全球用户<br>• 高性能需求 |
-| **Giscus** | • 已有 GitHub 账号<br>• 简单评论需求<br>• 技术博客 | • 需要审核<br>• 需要匿名评论 |
-| **Utterances** | • 极简主义<br>• GitHub 重度用户<br>• 个人博客 | • 需要管理后台<br>• 需要审核功能 |
+| 评论系统           | 最佳适用场景                                   | 不适用场景            |
+| -------------- | ---------------------------------------- | ---------------- |
+| **Extalk** 🌟  | • 追求极致性能• 需要完整功能• 零成本运营• 全球化用户           | • 需要自定义服务器       |
+| **Waline**     | • 需要多种登录方式• 已有 MySQL/MongoDB• 需要 AGPL 开源 | • 不想维护服务器• 成本敏感  |
+| **Twikoo**     | • 喜欢 MongoDB• 需要微信登录• 国内用户为主             | • 全球用户• 高性能需求    |
+| **Giscus**     | • 已有 GitHub 账号• 简单评论需求• 技术博客             | • 需要审核• 需要匿名评论   |
+| **Utterances** | • 极简主义• GitHub 重度用户• 个人博客                | • 需要管理后台• 需要审核功能 |
 
 ### 性能基准测试
 
@@ -399,21 +406,22 @@ xychart-beta
 ```
 
 **测试说明：**
+
 - **首屏加载时间**：从请求到评论完全渲染
 - **查询次数**：获取一页评论所需的数据库查询次数
 - **数据基于**：100 条评论，每页 10 条，平均网络环境
 
 ### 成本对比（按月活 10 万 PV 计算）
 
-| 评论系统 | 月度成本 | 说明 |
-|----------|---------|------|
-| **Extalk** | 💰 **$0** | Cloudflare 免费额度内 |
-| Waline | 💰💰 **$5-20** | 服务器 + 数据库费用 |
-| Twikoo | 💰💰 **$3-15** | 云函数 + MongoDB 费用 |
-| Giscus | 💰 **$0** | 完全免费 |
-| Utterances | 💰 **$0** | 完全免费 |
+| 评论系统       | 月度成本           | 说明               |
+| ---------- | -------------- | ---------------- |
+| **Extalk** | 💰 **$0**      | Cloudflare 免费额度内 |
+| Waline     | 💰💰 **$5-20** | 服务器 + 数据库费用      |
+| Twikoo     | 💰💰 **$3-15** | 云函数 + MongoDB 费用 |
+| Giscus     | 💰 **$0**      | 完全免费             |
+| Utterances | 💰 **$0**      | 完全免费             |
 
----
+***
 
 ## 🚀 快速部署
 
@@ -485,6 +493,7 @@ npx wrangler deploy
 ### 5. 初始化管理员
 
 访问初始化 URL：
+
 ```
 https://your-worker.workers.dev/init-admin-999
 ```
@@ -506,7 +515,7 @@ https://your-worker.workers.dev/init-admin-999
 <script src="https://your-worker.workers.dev/sdk.js?mode=infinite"></script>
 ```
 
----
+***
 
 ## 📖 使用指南
 
@@ -557,13 +566,13 @@ https://your-worker.workers.dev/init-admin-999
 
 ### 配置选项
 
-| 参数 | 说明 | 默认值 | 可选值 |
-|------|------|--------|--------|
-| `mode` | 加载模式 | `pagination` | `pagination`, `infinite`, `loadmore` |
-| `BASE_URL` | API 地址 | 自动获取 | 自定义 Worker 域名 |
-| `LOAD_MODE` | 默认模式 | `pagination` | 在环境变量中设置 |
+| 参数          | 说明     | 默认值          | 可选值                                  |
+| ----------- | ------ | ------------ | ------------------------------------ |
+| `mode`      | 加载模式   | `pagination` | `pagination`, `infinite`, `loadmore` |
+| `BASE_URL`  | API 地址 | 自动获取         | 自定义 Worker 域名                        |
+| `LOAD_MODE` | 默认模式   | `pagination` | 在环境变量中设置                             |
 
----
+***
 
 ## ⚡ 性能优化
 
@@ -610,6 +619,7 @@ END;
 #### 3. 查询优化
 
 **优化前（5 次查询）**：
+
 ```javascript
 // 5 次独立查询
 const roots = await db.prepare(...).all();
@@ -620,6 +630,7 @@ const views = await db.prepare(...).first();
 ```
 
 **优化后（3 次查询）**：
+
 ```javascript
 // 1. 根评论（使用索引）
 const roots = await db.prepare(...).all();
@@ -641,15 +652,15 @@ const stats = await db.prepare(`
 
 ### 性能对比
 
-| 指标 | 优化前 | 优化后 | 提升 |
-|------|--------|--------|------|
-| **获取评论延迟** | ~150ms | ~40ms | **73% ↓** |
-| **COUNT 查询** | ~50ms（全表扫描） | ~1ms（索引查找） | **98% ↓** |
-| **根评论排序** | ~30ms | ~8ms | **73% ↓** |
-| **查询次数** | 5 次 | 3 次 | **40% ↓** |
-| **批量插入（100 条）** | ~2000ms | ~400ms | **80% ↓** |
+| 指标              | 优化前          | 优化后         | 提升        |
+| --------------- | ------------ | ----------- | --------- |
+| **获取评论延迟**      | \~150ms      | \~40ms      | **73% ↓** |
+| **COUNT 查询**    | \~50ms（全表扫描） | \~1ms（索引查找） | **98% ↓** |
+| **根评论排序**       | \~30ms       | \~8ms       | **73% ↓** |
+| **查询次数**        | 5 次          | 3 次         | **40% ↓** |
+| **批量插入（100 条）** | \~2000ms     | \~400ms     | **80% ↓** |
 
----
+***
 
 ## 📡 API 文档
 
@@ -660,6 +671,7 @@ GET /comments?url={page_url}&page={page}&limit={limit}
 ```
 
 **响应示例：**
+
 ```json
 {
   "comments": [
@@ -719,13 +731,14 @@ Content-Type: application/json
 }
 ```
 
----
+***
 
 ## ❓ 常见问题
 
 ### Q1: 评论加载失败？
 
 **A:** 检查以下几点：
+
 1. CORS 域名是否在 `allowed_domains` 表中
 2. `BASE_URL` 环境变量是否正确
 3. 浏览器控制台查看错误信息
@@ -733,6 +746,7 @@ Content-Type: application/json
 ### Q2: 如何备份数据？
 
 **A:** 使用 Wrangler 导出：
+
 ```bash
 npx wrangler d1 export fuwari_comments_db --output backup.sql
 ```
@@ -740,6 +754,7 @@ npx wrangler d1 export fuwari_comments_db --output backup.sql
 ### Q3: 如何迁移数据？
 
 **A:** 导入 SQL 文件：
+
 ```bash
 npx wrangler d1 execute fuwari_comments_db --file=backup.sql
 ```
@@ -747,6 +762,7 @@ npx wrangler d1 execute fuwari_comments_db --file=backup.sql
 ### Q4: 支持自定义样式吗？
 
 **A:** 支持！通过 CSS 覆盖：
+
 ```css
 #extalk-comments {
   --primary-color: #your-color;
@@ -758,7 +774,7 @@ npx wrangler d1 execute fuwari_comments_db --file=backup.sql
 
 **A:** 设置 `sync_interval_minutes = 0`
 
----
+***
 
 ## 🤝 贡献指南
 
@@ -781,36 +797,39 @@ npm run dev
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启 Pull Request
 
----
+***
 
 ## 📝 更新日志
 
 ### v1.0.0 (2026-03-14)
 
 **性能优化**
+
 - ✅ 数据库索引优化（查询速度提升 70%）
 - ✅ 计数缓存表（COUNT 查询提升 98%）
 - ✅ CTE 查询优化（5 次 → 3 次）
 - ✅ 触发器自动维护计数
 
 **功能改进**
+
 - ✅ 三种加载模式（分页/无限滚动/加载更多）
 - ✅ 点赞防抖机制（请求减少 90%）
 - ✅ IP 地理位置优化（Cloudflare 内置）
 - ✅ 评论滑出滑入动画
 
 **安全加固**
+
 - ✅ hCaptcha 全程防护
 - ✅ JWT 认证优化
 - ✅ SQL 注入防护
 
----
+***
 
 ## 📄 开源协议
 
 本项目基于 **MIT License** 开源。
 
----
+***
 
 ## 🌟 致谢
 
@@ -821,11 +840,11 @@ npm run dev
 - [hCaptcha](https://www.hcaptcha.com/)
 - [Resend](https://resend.com/)
 
----
+***
 
 <div align="center">
 
-**Made with ❤️ by [UpXuu](https://upxuu.com)**
+**Made with ❤️ by** **[UpXuu](https://upxuu.com)**
 
 [⭐ Star on GitHub](https://github.com/lijiaxu2021/extalk) · [🐛 Report Issue](https://github.com/lijiaxu2021/extalk/issues) · [💬 Join Discussion](https://github.com/lijiaxu2021/extalk/discussions)
 
