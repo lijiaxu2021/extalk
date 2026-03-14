@@ -898,15 +898,12 @@ export default {
 
   function updateAuthUI() {
     const btn = document.getElementById('auth-status-btn');
-    const nickInput = document.getElementById('comment-nickname');
-    if (currentUser) {
+        if (currentUser) {
       btn.innerText = \`已登录: \${currentUser.nickname}\`;
-      nickInput.value = currentUser.nickname;
-      nickInput.disabled = true;
+
     } else {
       btn.innerText = '登录/注册';
-      nickInput.value = '';
-      nickInput.disabled = false;
+
     }
   }
 
@@ -2290,4 +2287,7 @@ export default {
     return new Response("Not Found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
   },
 };
+
+
+
 
