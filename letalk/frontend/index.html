@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letalk 论坛 - 首页</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">Letalk</a>
+                <nav class="nav">
+                    <a href="/#boards">板块</a>
+                    <a href="/latest.html">最新</a>
+                    <a href="/hot.html">热门</a>
+                </nav>
+                <div class="auth-buttons" id="auth-buttons">
+                    <!-- Will be populated by JS -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Hero Section -->
+            <section class="hero">
+                <h1>欢迎来到 Letalk 论坛</h1>
+                <p>一个现代化的交流平台，分享你的想法和见解</p>
+                <div class="hero-actions">
+                    <a href="/register.html" class="btn btn-primary">立即加入</a>
+                    <a href="/boards.html" class="btn btn-secondary">浏览板块</a>
+                </div>
+            </section>
+
+            <!-- Statistics -->
+            <section class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="stat-threads">0</div>
+                    <div class="stat-label">主题</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="stat-posts">0</div>
+                    <div class="stat-label">帖子</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="stat-users">0</div>
+                    <div class="stat-label">用户</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="stat-online">0</div>
+                    <div class="stat-label">在线</div>
+                </div>
+            </section>
+
+            <!-- Boards Section -->
+            <section id="boards" class="boards-section">
+                <h2 class="section-title">论坛板块</h2>
+                <div id="boards-list" class="boards-list">
+                    <!-- Will be populated by JS -->
+                    <div class="loading">加载中...</div>
+                </div>
+            </section>
+
+            <!-- Latest Threads -->
+            <section class="latest-threads">
+                <h2 class="section-title">
+                    <span>最新主题</span>
+                    <a href="/latest.html" class="more-link">查看更多 →</a>
+                </h2>
+                <div id="latest-threads-list" class="threads-list">
+                    <!-- Will be populated by JS -->
+                    <div class="loading">加载中...</div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Letalk</h3>
+                    <p>一个现代化的论坛系统</p>
+                </div>
+                <div class="footer-section">
+                    <h3>链接</h3>
+                    <a href="/">首页</a>
+                    <a href="/boards.html">板块</a>
+                    <a href="/latest.html">最新</a>
+                </div>
+                <div class="footer-section">
+                    <h3>关于</h3>
+                    <a href="/about.html">关于我们</a>
+                    <a href="/rules.html">社区规则</a>
+                    <a href="/contact.html">联系我们</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Letalk Forum. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/assets/js/app.js"></script>
+    <script>
+        // Load boards
+        async function loadBoards() {
+            try {
+                const res = await fetch('/api/boards');
+                const data = await res.json();
+                const container = document.getElementById('boards-list');
+                
+                if (data.categories && data.categories.length > 0) {
+                    container.innerHTML = data.categories.map(cat => `
+                        <div class="category">
+                            <div class="category-header">
+                                <span class="category-icon">${cat.icon || '📁'}</span>
+                                <h3 class="category-name">${cat.name}</h3>
+                                <span class="category-desc">${cat.description || ''}</span>
+                            </div>
+                            <div class="category-boards">
+                                ${cat.boards.map(board => `
+                                    <a href="/board.html?slug=${board.slug}" class="board-card">
+                                        <div class="board-icon">${board.icon || '💬'}</div>
+                                        <div class="board-info">
+                                            <h4 class="board-name">${board.name}</h4>
+                                            <p class="board-desc">${board.description || '暂无描述'}</p>
+                                        </div>
+                                        <div class="board-stats">
+                                            <div class="board-stat">
+                                                <span class="stat-value">${board.thread_count || 0}</span>
+                                                <span class="stat-label">主题</span>
+                                            </div>
+                                            <div class="board-stat">
+                                                <span class="stat-value">${board.post_count || 0}</span>
+                                                <span class="stat-label">帖子</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="empty-state">暂无板块</div>';
+                }
+            } catch (e) {
+                console.error('Failed to load boards:', e);
+                document.getElementById('boards-list').innerHTML = '<div class="error">加载失败</div>';
+            }
+        }
+
+        // Load latest threads
+        async function loadLatestThreads() {
+            try {
+                const res = await fetch('/api/boards');
+                const data = await res.json();
+                const container = document.getElementById('latest-threads-list');
+                
+                // Get first board for demo
+                if (data.categories && data.categories.length > 0) {
+                    const firstBoard = data.categories[0].boards[0];
+                    if (firstBoard) {
+                        const threadsRes = await fetch(`/api/boards/${firstBoard.slug}/threads?limit=5`);
+                        const threadsData = await threadsRes.json();
+                        
+                        if (threadsData.threads && threadsData.threads.length > 0) {
+                            container.innerHTML = threadsData.threads.map(thread => `
+                                <div class="thread-card">
+                                    <div class="thread-main">
+                                        <h4 class="thread-title">
+                                            <a href="/thread.html?id=${thread.id}">${thread.title}</a>
+                                            ${thread.is_pinned ? '<span class="badge badge-pinned">顶</span>' : ''}
+                                            ${thread.is_featured ? '<span class="badge badge-featured">精</span>' : ''}
+                                        </h4>
+                                        <div class="thread-meta">
+                                            <span class="thread-author">${thread.user_nickname}</span>
+                                            <span class="thread-time">${formatTime(thread.created_at)}</span>
+                                            <span class="thread-board">${thread.board_name}</span>
+                                        </div>
+                                    </div>
+                                    <div class="thread-stats">
+                                        <span class="thread-stat">👁 ${thread.view_count}</span>
+                                        <span class="thread-stat">❤️ ${thread.like_count}</span>
+                                        <span class="thread-stat">💬 ${thread.post_count}</span>
+                                    </div>
+                                </div>
+                            `).join('');
+                        } else {
+                            container.innerHTML = '<div class="empty-state">暂无主题</div>';
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load latest threads:', e);
+                document.getElementById('latest-threads-list').innerHTML = '<div class="error">加载失败</div>';
+            }
+        }
+
+        function formatTime(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            
+            if (minutes < 1) return '刚刚';
+            if (minutes < 60) return `${minutes}分钟前`;
+            if (hours < 24) return `${hours}小时前`;
+            if (days < 7) return `${days}天前`;
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBoards();
+            loadLatestThreads();
+            updateAuthUI();
+        });
+    </script>
+</body>
+</html>

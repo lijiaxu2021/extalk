@@ -1,0 +1,19 @@
+{
+  "name": "letalk-forum",
+  "version": "1.0.0",
+  "description": "A modern forum built with Cloudflare Workers",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute letalk-db --local --file=./schema.sql",
+    "db:prod": "wrangler d1 execute letalk-db --file=./schema.sql"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -419,7 +419,7 @@ export default {
       margin-bottom: 0;
       opacity: 0;
       transform: translateX(-50px) translateY(50px);
-      transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+      transition: all 1.2s cubic-bezier(0.23, 1, 0.32, 1);
     }
     .comment-item.animate-in {
       opacity: 1;
@@ -429,7 +429,7 @@ export default {
     .comment-item.animate-out {
       opacity: 0;
       transform: translateX(100px) translateY(0);
-      transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+      transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
     }
     .comment-item.animate-out.animate-in {
       opacity: 1;
@@ -642,11 +642,43 @@ export default {
   function renderApp(container) {
     container.innerHTML = \`
       <div id="views-counter" class="views-info"></div>
-      <div id="form-toggle" class="form-toggle-btn">
-        <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-        <span>点击发送评论</span>
+      
+      <!-- 顶部栏：左侧写评论 + 右侧排序切换 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
+        <div id="form-toggle" class="form-toggle-btn" style="padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: #0070f3; color: white; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease;">
+          <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+          <span>写评论</span>
+        </div>
+        
+        <button id="sort-toggle-btn" class="sort-btn" style="padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f1f5f9; color: #64748b; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease;" onclick="window.toggleSort()">
+          <svg id="sort-icon" style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span id="sort-text">按时间</span>
+        </button>
       </div>
-      <div id="comment-form-container" class="comment-form">
+      
+      <!-- 管理员面板按钮（仅管理员可见） -->
+      <div id="admin-panel" style="display: none; margin-bottom: 15px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="admin-settings-btn" style="padding: 8px 16px; border: 1px solid #0070f3; border-radius: 6px; background: #0070f3; color: white; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;" onclick="window.openAdminSettings()">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            设置
+          </button>
+          <button id="admin-comments-btn" style="padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; color: #64748b; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;" onclick="window.openAdminComments()">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            评论管理
+          </button>
+          <button id="admin-users-btn" style="padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; color: #64748b; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;" onclick="window.openAdminUsers()">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            用户管理
+          </button>
+          <button id="admin-stats-btn" style="padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; color: #64748b; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;" onclick="window.openAdminStats()">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            数据统计
+          </button>
+        </div>
+      </div>
+      
+      <div id="comment-form-container" class="comment-form" style="display: none;">
         <div class="form-title">
           <div style="display:flex; align-items:center; gap:10px">
             <span id="form-title">发表评论</span>
@@ -664,6 +696,16 @@ export default {
         <div id="hcaptcha-container" style="margin-bottom: 15px;"></div>
         <button id="submit-comment" class="submit-btn">发布评论</button>
       </div>
+      
+      <!-- 管理员设置面板 -->
+      <div id="admin-settings-panel" style="display: none; padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; color: #1e293b; font-size: 1.1rem;">系统设置</h3>
+          <button onclick="window.closeAdminPanel()" style="padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; cursor: pointer; font-size: 0.9rem;">关闭</button>
+        </div>
+        <div id="admin-settings-content"></div>
+      </div>
+      
       <div id="comments-list">正在加载评论...</div>
       <div id="pagination-container" class="pagination"></div>
       
@@ -881,7 +923,7 @@ export default {
     }
   }
 
-  async function loadComments() {
+  async function loadComments(sortType = 'time') {
     const listContainer = document.getElementById('comments-list');
     const pageUrl = window.location.pathname;
     
@@ -889,6 +931,16 @@ export default {
     if (listContainer) {
       listContainer.style.opacity = '1';
       listContainer.style.transition = 'none';
+    }
+    
+    // 检查管理员权限并显示/隐藏管理面板
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) {
+      if (currentUser && currentUser.role === 'admin') {
+        adminPanel.style.display = 'block';
+      } else {
+        adminPanel.style.display = 'none';
+      }
     }
     
     // Track page view
@@ -899,7 +951,7 @@ export default {
     }).catch(() => {});
 
     try {
-      const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${pageSize}\`);
+      const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${pageSize}&sort=\${sortType}\`);
       const data = await response.json();
       const allComments = data.comments;
       const total = data.total;
@@ -942,17 +994,63 @@ export default {
       function renderComment(c, level = 0) {
         const commentReplies = replies.filter(r => r.parent_id === c.id);
         const delBtnHtml = isAdmin ? \`<span class="del-btn" onclick="window.delComment(\${c.id})">删除</span>\` : '';
+        
+        // 检查是否可以编辑（管理员、登录用户、或游客在 5 分钟内）
+        let canEdit = false;
+        let editBtnHtml = '';
+        if (isAdmin) {
+          canEdit = true;
+        } else if (currentUser) {
+          canEdit = (c.user_id === currentUser.id);
+        } else {
+          // 游客检查 visitor_id
+          const visitorId = localStorage.getItem('extalk_visitor_id');
+          canEdit = (visitorId && visitorId === c.visitor_id);
+          // 检查是否在 5 分钟内
+          if (canEdit && c.created_at) {
+            const now = new Date();
+            const createdAt = new Date(c.created_at);
+            const minutesDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+            if (minutesDiff > 5) canEdit = false;
+          }
+        }
+        
+        if (canEdit) {
+          editBtnHtml = \`<a href="javascript:void(0)" class="edit-btn" style="font-size:0.85rem; text-decoration:none; color: #64748b;" onclick="window.editComment(\${c.id}, this)">编辑</a>\`;
+        }
+        
+        // 举报按钮（所有人可见，除了自己和管理员）
+        let reportBtnHtml = '';
+        const canReport = !isAdmin && (!currentUser || c.user_id !== currentUser.id) && (!c.visitor_id || c.visitor_id !== localStorage.getItem('extalk_visitor_id'));
+        if (canReport && !c.is_hidden) {
+          reportBtnHtml = \`<a href="javascript:void(0)" class="report-btn" style="font-size:0.85rem; text-decoration:none; color: #64748b;" onclick="window.reportComment(\${c.id}, this)">举报</a>\`;
+        }
+        
         // 楼层计算：由于根评论按时间降序排列（最新的在前），楼层号需要从大到小
         const floorNumber = total - ((currentPage - 1) * pageSize + rootComments.indexOf(c));
         const floorHtml = level === 0 ? \`<span class="floor-tag">\${floorNumber}F</span>\` : '';
         const locationHtml = c.location ? \`<span class="location-tag"><svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>\${escapeHtml(c.location)}</span>\` : '';
         const timeStr = c.created_at;
         const liked = localStorage.getItem('liked_comment_' + c.id);
+        const editedMark = c.is_edited ? \` <span style="font-size:0.75rem; color: #94a3b8;">(已编辑)</span>\` : '';
+        
+        // 被举报隐藏的评论显示不同样式
+        if (c.is_hidden) {
+          return \`
+            <div class="comment-item" style="\${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
+              <div class="comment-header">
+                <div><span class="comment-author" style="color: #94a3b8;">该评论因被多次举报已隐藏</span></div>
+              </div>
+              <div class="comment-footer" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
+                \${reportBtnHtml ? \`<a href="javascript:void(0)" class="report-btn" style="font-size:0.85rem; text-decoration:none; color: #64748b;" onclick="window.reportComment(\${c.id}, this)">举报</a>\` : ''}
+              </div>
+            </div>\`;
+        }
         
         return \`
           <div class="comment-item" style="\${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
             <div class="comment-header">
-              <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${floorHtml}\${locationHtml}</div>
+              <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${floorHtml}\${locationHtml}\${editedMark}</div>
               <span class="comment-meta">\${timeStr}</span>
             </div>
             <div class="comment-content" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.content)}</div>
@@ -962,6 +1060,8 @@ export default {
                 <span class="like-count">\${c.likes || 0}</span>
               </div>
               <a href="javascript:void(0)" class="reply-btn" style="font-size:0.85rem; text-decoration:none;" onclick="window.setReply(\${c.id}, '\${escapeHtml(c.nickname)}')">回复</a>
+              \${editBtnHtml}
+              \${reportBtnHtml}
               \${delBtnHtml}
             </div>
             \${commentReplies.length > 0 ? \`
@@ -978,13 +1078,15 @@ export default {
       // 添加滚动监听动画 - 一次只有一个评论项滑出，从上到下依次渲染
       // 无限滚动模式除外，它的动画在 loadNextPage 中处理
       if (currentLoadMode === 'infinite') {
-        // 无限滚动模式：第一页评论立即显示，不需要动画
+        // 无限滚动模式：第一页评论逐个显示动画
         setTimeout(() => {
           const commentItems = Array.from(listContainer.querySelectorAll('.comment-item'));
-          commentItems.forEach(item => {
-            item.classList.add('animate-in');
+          commentItems.forEach((item, index) => {
+            setTimeout(() => {
+              item.classList.add('animate-in');
+            }, index * 200); // 每个评论间隔 200ms
           });
-        }, 10);
+        }, 500); // 延迟 500ms 等待页面渲染
       } else {
         // 其他模式：使用 Intersection Observer 逐个触发动画，并监听滑出滑入
         setTimeout(() => {
@@ -1120,6 +1222,20 @@ export default {
     });
     
     observer.observe(lastComment);
+    
+    // 检查页面是否填满，如果没有填满则自动加载下一页
+    setTimeout(() => {
+      const viewportHeight = window.innerHeight;
+      const bodyHeight = document.body.scrollHeight;
+      const commentsContainer = document.getElementById('comments-list');
+      
+      if (commentsContainer && hasMorePages && !isLoading) {
+        // 如果内容高度小于视口高度，自动加载
+        if (bodyHeight < viewportHeight || commentsContainer.clientHeight < viewportHeight * 0.8) {
+          loadNextPage();
+        }
+      }
+    }, 500);
   }
   
   // 为评论添加滑出滑入监听 - 所有模式通用
@@ -1128,19 +1244,19 @@ export default {
       entries.forEach(entry => {
         const item = entry.target;
         if (entry.isIntersecting) {
-          // 进入视口：如果之前标记为滑出，则从右侧滑入
+          // 进入视口：立即从右侧滑入
           if (item.classList.contains('animate-out')) {
             item.classList.add('animate-in');
           }
         } else {
-          // 离开视口：标记为滑出状态
+          // 离开视口：立即标记为滑出状态
           item.classList.add('animate-out');
           item.classList.remove('animate-in');
         }
       });
     }, {
       root: null,
-      rootMargin: '-100px',  // 提前 100px 标记为滑出
+      rootMargin: '0px',  // 视口边缘立即触发
       threshold: 0
     });
     
@@ -1279,7 +1395,7 @@ export default {
           // 为新评论添加滑出滑入监听
           const newItems = Array.from(allItems).slice(startIndex);
           setupCommentReanimate(newItems);
-        }, 100);
+        }, 300);
       } else {
         // 其他模式保持原有动画逻辑
         setTimeout(() => {
@@ -1288,7 +1404,7 @@ export default {
           for (let i = startIndex; i < newItems.length; i++) {
             newItems[i].classList.add('animate-in');
           }
-        }, 100);
+        }, 300);
       }
       
       hasMorePages = currentPage < totalPages;
@@ -1350,6 +1466,494 @@ export default {
         commentsContainer.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }, 300);
+  };
+  
+  // 切换排序方式（单按钮切换）
+  window.toggleSort = function() {
+    const btn = document.getElementById('sort-toggle-btn');
+    const icon = document.getElementById('sort-icon');
+    const text = document.getElementById('sort-text');
+    
+    // 切换当前排序状态
+    const isTimeSort = text.innerText === '按时间';
+    const newSortType = isTimeSort ? 'hot' : 'time';
+    
+    // 更新按钮样式和文字
+    if (newSortType === 'hot') {
+      btn.style.background = '#0070f3';
+      btn.style.color = 'white';
+      btn.style.borderColor = '#0070f3';
+      icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path>';
+      text.innerText = '按热度';
+    } else {
+      btn.style.background = '#f1f5f9';
+      btn.style.color = '#64748b';
+      btn.style.borderColor = '#e2e8f0';
+      icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
+      text.innerText = '按时间';
+    }
+    
+    // 重置到第一页并重新加载
+    currentPage = 1;
+    hasMorePages = true;
+    totalPages = 1;
+    infiniteScrollInitialized = false;
+    
+    // 清理旧的观察者
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    
+    // 移除 sentinel 元素
+    const oldSentinel = document.getElementById('sentinel');
+    if (oldSentinel) {
+      oldSentinel.remove();
+    }
+    
+    // 移除加载状态提示
+    const oldLoading = document.getElementById('infinite-loading');
+    if (oldLoading) {
+      oldLoading.remove();
+    }
+    
+    // 重新加载评论（带排序参数）
+    loadComments(newSortType);
+  };
+  
+  // 管理员面板控制函数
+  window.openAdminSettings = async function() {
+    // 严格鉴权：只有管理员才能访问
+    if (!currentUser || currentUser.role !== 'admin') {
+      alert('无权访问');
+      return;
+    }
+    
+    const settingsPanel = document.getElementById('admin-settings-panel');
+    const commentsList = document.getElementById('comments-list');
+    const paginationContainer = document.getElementById('pagination-container');
+    
+    // 丝滑过渡：先隐藏评论列表
+    commentsList.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    commentsList.style.opacity = '0';
+    commentsList.style.transform = 'translateX(-20px)';
+    
+    if (paginationContainer) {
+      paginationContainer.style.transition = 'opacity 0.3s ease';
+      paginationContainer.style.opacity = '0';
+    }
+    
+    setTimeout(() => {
+      commentsList.style.display = 'none';
+      if (paginationContainer) paginationContainer.style.display = 'none';
+      
+      // 显示设置面板
+      settingsPanel.style.display = 'block';
+      settingsPanel.style.opacity = '0';
+      settingsPanel.style.transform = 'translateX(20px)';
+      settingsPanel.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+      
+      // 加载设置内容
+      loadAdminSettings();
+      
+      // 丝滑显示
+      setTimeout(() => {
+        settingsPanel.style.opacity = '1';
+        settingsPanel.style.transform = 'translateX(0)';
+      }, 50);
+    }, 400);
+  };
+  
+  window.loadAdminSettings = async function() {
+    const contentDiv = document.getElementById('admin-settings-content');
+    contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">加载中...</div>';
+    
+    try {
+      // 获取当前配置（添加 Token 验证）
+      const headers = {
+        'Authorization': \`Bearer \${currentUser.token}\`
+      };
+      
+      const [heatRes, configRes, syncRes] = await Promise.all([
+        fetch(\`\${API_ENDPOINT}/admin/heat-settings\`, { headers }),
+        fetch(\`\${API_ENDPOINT}/admin/config\`, { headers }),
+        fetch(\`\${API_ENDPOINT}/admin/sync-settings\`, { headers })
+      ]);
+      
+      // 检查响应状态
+      if (!heatRes.ok || !configRes.ok) {
+        throw new Error('权限验证失败');
+      }
+      
+      const heatData = await heatRes.json();
+      const configData = await configRes.json();
+      const syncData = await syncRes.json().catch(() => ({ sync_interval_minutes: 60 })); // 默认 60 分钟
+      
+      // 构建设置界面 HTML
+      contentDiv.innerHTML = \`
+        <div style="display: grid; gap: 20px;">
+          <!-- 邮箱同步配置 -->
+          <div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h4 style="margin: 0 0 15px 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+              邮箱同步配置
+            </h4>
+            <div style="display: grid; gap: 15px;">
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">同步频率（分钟）</label>
+                <input type="number" id="sync-interval" value="\${syncData.sync_interval_minutes || 60}" step="5" min="5" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;" />
+                <p style="margin: 8px 0 0 0; font-size: 0.85rem; color: #64748b;">设置多久同步一次评论到邮箱，最少 5 分钟</p>
+              </div>
+              <button onclick="window.saveSyncSettings()" style="padding: 10px 20px; background: #0070f3; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">保存同步配置</button>
+            </div>
+          </div>
+          
+          <!-- 热度算法配置 -->
+          <div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h4 style="margin: 0 0 15px 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path></svg>
+              热度算法配置
+            </h4>
+            <div style="display: grid; gap: 15px;">
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">点赞权重</label>
+                <input type="number" id="heat-like-weight" value="\${heatData.like_weight || 1.0}" step="0.1" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;" />
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">回复权重</label>
+                <input type="number" id="heat-reply-weight" value="\${heatData.reply_weight || 2.0}" step="0.1" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;" />
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">时间衰减因子</label>
+                <input type="number" id="heat-time-decay" value="\${heatData.time_decay_factor || 0.5}" step="0.1" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;" />
+              </div>
+              <button onclick="window.saveHeatSettings()" style="padding: 10px 20px; background: #0070f3; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">保存热度配置</button>
+            </div>
+          </div>
+          
+          <!-- 系统配置 -->
+          <div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h4 style="margin: 0 0 15px 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              系统配置
+            </h4>
+            <div style="display: grid; gap: 15px;">
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">最大评论长度</label>
+                <input type="number" id="config-max-length" value="\${configData.max_comment_length || 500}" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;" />
+              </div>
+              <button onclick="window.saveSystemConfig()" style="padding: 10px 20px; background: #0070f3; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">保存系统配置</button>
+            </div>
+          </div>
+        </div>
+      \`;
+    } catch (err) {
+      console.error('加载设置失败:', err);
+      contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">加载失败：权限验证失败，请重新登录</div>';
+    }
+  };
+  
+  window.saveSyncSettings = async function() {
+    const interval = parseInt(document.getElementById('sync-interval').value);
+    
+    if (interval < 5) {
+      return alert('同步频率不能小于 5 分钟');
+    }
+    
+    try {
+      const res = await fetch(\`\${API_ENDPOINT}/admin/sync-settings\`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': \`Bearer \${currentUser.token}\`
+        },
+        body: JSON.stringify({ sync_interval_minutes: interval })
+      });
+      
+      if (res.ok) {
+        alert('同步配置已保存，下次同步将在 \${interval} 分钟后执行');
+      } else {
+        alert('保存失败：' + await res.text());
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  window.saveHeatSettings = async function() {
+    const likeWeight = parseFloat(document.getElementById('heat-like-weight').value);
+    const replyWeight = parseFloat(document.getElementById('heat-reply-weight').value);
+    const timeDecay = parseFloat(document.getElementById('heat-time-decay').value);
+    
+    try {
+      const res = await fetch(\`\${API_ENDPOINT}/admin/heat-settings\`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': \`Bearer \${currentUser.token}\`
+        },
+        body: JSON.stringify({ like_weight: likeWeight, reply_weight: replyWeight, time_decay_factor: timeDecay })
+      });
+      
+      if (res.ok) {
+        alert('热度配置已保存');
+        loadAdminSettings();
+      } else {
+        alert('保存失败：' + await res.text());
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  window.saveSystemConfig = async function() {
+    const maxLength = parseInt(document.getElementById('config-max-length').value);
+    
+    try {
+      const res = await fetch(\`\${API_ENDPOINT}/admin/config\`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': \`Bearer \${currentUser.token}\`
+        },
+        body: JSON.stringify({ max_comment_length: maxLength })
+      });
+      
+      if (res.ok) {
+        alert('系统配置已保存');
+        loadAdminSettings();
+      } else {
+        alert('保存失败：' + await res.text());
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  window.closeAdminPanel = function() {
+    const settingsPanel = document.getElementById('admin-settings-panel');
+    const commentsList = document.getElementById('comments-list');
+    const paginationContainer = document.getElementById('pagination-container');
+    
+    // 丝滑隐藏设置面板
+    settingsPanel.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    settingsPanel.style.opacity = '0';
+    settingsPanel.style.transform = 'translateX(20px)';
+    
+    setTimeout(() => {
+      settingsPanel.style.display = 'none';
+      
+      // 显示评论列表
+      commentsList.style.display = 'block';
+      if (paginationContainer) paginationContainer.style.display = 'block';
+      
+      // 丝滑显示评论
+      commentsList.style.opacity = '0';
+      commentsList.style.transform = 'translateX(-20px)';
+      
+      setTimeout(() => {
+        commentsList.style.opacity = '1';
+        commentsList.style.transform = 'translateX(0)';
+        if (paginationContainer) {
+          paginationContainer.style.opacity = '1';
+        }
+      }, 50);
+    }, 400);
+  };
+  
+  // 评论管理功能
+  window.openAdminComments = async function() {
+    if (!currentUser || currentUser.role !== 'admin') {
+      alert('无权访问');
+      return;
+    }
+    
+    const commentsList = document.getElementById('comments-list');
+    const paginationContainer = document.getElementById('pagination-container');
+    const settingsPanel = document.getElementById('admin-settings-panel');
+    
+    // 隐藏评论列表和分页
+    commentsList.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    commentsList.style.opacity = '0';
+    commentsList.style.transform = 'translateX(-20px)';
+    
+    if (paginationContainer) {
+      paginationContainer.style.transition = 'opacity 0.3s ease';
+      paginationContainer.style.opacity = '0';
+    }
+    
+    setTimeout(() => {
+      commentsList.style.display = 'none';
+      if (paginationContainer) paginationContainer.style.display = 'none';
+      
+      // 显示评论管理面板
+      settingsPanel.style.display = 'block';
+      settingsPanel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#1e293b;font-size:1.1rem;">评论管理</h3><button onclick="window.closeAdminPanel()" style="padding:8px 16px;border:1px solid #e2e8f0;border-radius:6px;background:white;cursor:pointer;font-size:0.9rem;">关闭</button></div><div id="admin-comments-content"><div style="text-align:center;padding:40px;color:#64748b;">加载中...</div></div>';
+      
+      settingsPanel.style.opacity = '0';
+      settingsPanel.style.transform = 'translateX(20px)';
+      settingsPanel.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+      
+      setTimeout(() => {
+        settingsPanel.style.opacity = '1';
+        settingsPanel.style.transform = 'translateX(0)';
+        loadAdminComments();
+      }, 50);
+    }, 400);
+  };
+  
+  window.loadAdminComments = async function() {
+    const contentDiv = document.getElementById('admin-comments-content');
+    
+    try {
+      const headers = {
+        'Authorization': 'Bearer ' + currentUser.token
+      };
+      
+      // 获取被举报的评论
+      const reportsRes = await fetch(API_ENDPOINT + '/admin/reported-comments', { headers });
+      const reportsData = await reportsRes.json();
+      
+      if (!reportsRes.ok) {
+        throw new Error('加载失败');
+      }
+      
+      const reportedComments = reportsData.comments || [];
+      
+      if (reportedComments.length === 0) {
+        contentDiv.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#94a3b8;"><svg style="width:64px;height:64px;margin-bottom:20px;opacity:0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><p style="font-size:1.1rem;">暂无被举报的评论</p></div>';
+        return;
+      }
+      
+      // 构建举报评论列表
+      let html = '<div style="display:grid;gap:15px;">';
+      html += '<h4 style="margin:0 0 10px 0;color:#1e293b;display:flex;align-items:center;gap:8px;">';
+      html += '<svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+      html += '被举报的评论 (' + reportedComments.length + ')</h4>';
+      
+      reportedComments.forEach(comment => {
+        const bgStyle = comment.is_hidden ? 'background:#fef2f2;border-color:#fecaca;' : '';
+        const hiddenBadge = comment.is_hidden ? '<span style="background:#ef4444;color:white;padding:2px 8px;border-radius:4px;font-size:0.75rem;">已隐藏</span>' : '';
+        
+        html += '<div style="padding:15px;background:white;border-radius:8px;border:1px solid #e2e8f0;' + bgStyle + '">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">';
+        html += '<div style="display:flex;gap:10px;align-items:center;">';
+        html += '<span style="color:#64748b;font-size:0.85rem;">' + escapeHtml(comment.nickname) + '</span>';
+        html += '<span style="color:#94a3b8;font-size:0.85rem;">' + comment.created_at + '</span>';
+        html += hiddenBadge;
+        html += '</div>';
+        html += '<span style="background:#fef2f2;color:#ef4444;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;">举报：' + comment.report_count + ' 次</span>';
+        html += '</div>';
+        html += '<div style="background:#f8fafc;padding:12px;border-radius:6px;margin-bottom:12px;font-size:0.9rem;color:#334155;">' + escapeHtml(comment.content) + '</div>';
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+        html += '<a href="' + comment.page_url + '" target="_blank" style="padding:6px 12px;background:#f1f5f9;color:#64748b;text-decoration:none;border-radius:6px;font-size:0.85rem;display:inline-flex;align-items:center;gap:4px;">查看页面</a>';
+        html += '<button onclick="window.deleteCommentFromAdmin(' + comment.id + ')" style="padding:6px 12px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;">删除</button>';
+        
+        if (comment.is_hidden) {
+          html += '<button onclick="window.restoreComment(' + comment.id + ')" style="padding:6px 12px;background:#22c55e;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;">恢复</button>';
+        } else {
+          html += '<button onclick="window.hideComment(' + comment.id + ')" style="padding:6px 12px;background:#fbbf24;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;">隐藏</button>';
+        }
+        
+        html += '<button onclick="window.ignoreReports(' + comment.id + ')" style="padding:6px 12px;background:#e2e8f0;color:#64748b;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;">忽略举报</button>';
+        html += '</div></div>';
+      });
+      
+      html += '</div>';
+      contentDiv.innerHTML = html;
+    } catch (err) {
+      contentDiv.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#ef4444;"><p>加载失败：' + err.message + '</p><button onclick="window.loadAdminComments()" style="margin-top:15px;padding:8px 16px;background:#0070f3;color:white;border:none;border-radius:6px;cursor:pointer;">重试</button></div>';
+    }
+  };
+  
+  window.deleteCommentFromAdmin = async function(id) {
+    if (!confirm('确定删除此评论？此操作不可恢复！')) return;
+    
+    try {
+      const res = await fetch(API_ENDPOINT + '/admin/comments/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + currentUser.token }
+      });
+      
+      if (res.ok) {
+        alert('评论已删除');
+        loadAdminComments();
+      } else {
+        alert('删除失败：' + await res.text());
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  window.hideComment = async function(id) {
+    try {
+      const res = await fetch(API_ENDPOINT + '/admin/comments/' + id + '/hide', {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + currentUser.token }
+      });
+      
+      if (res.ok) {
+        alert('评论已隐藏');
+        loadAdminComments();
+      } else {
+        alert('操作失败');
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  window.restoreComment = async function(id) {
+    try {
+      const res = await fetch(API_ENDPOINT + '/admin/comments/' + id + '/restore', {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + currentUser.token }
+      });
+      
+      if (res.ok) {
+        alert('评论已恢复');
+        loadAdminComments();
+      } else {
+        alert('操作失败');
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  window.ignoreReports = async function(id) {
+    try {
+      const res = await fetch(API_ENDPOINT + '/admin/comments/' + id + '/ignore-reports', {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + currentUser.token }
+      });
+      
+      if (res.ok) {
+        alert('举报已忽略，举报计数已重置');
+        loadAdminComments();
+      } else {
+        alert('操作失败');
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  window.openAdminUsers = function() {
+    if (!currentUser || currentUser.role !== 'admin') {
+      alert('无权访问');
+      return;
+    }
+    alert('用户管理功能开发中...');
+  };
+  
+  window.openAdminStats = function() {
+    if (!currentUser || currentUser.role !== 'admin') {
+      alert('无权访问');
+      return;
+    }
+    alert('数据统计功能开发中...');
   };
 
   window.setReply = function(id, nickname) {
@@ -1451,6 +2055,160 @@ export default {
       else alert('删除失败：' + await res.text());
     } catch(e) { alert('请求失败'); }
   };
+  
+  // 编辑评论功能
+  window.editComment = async function(id, btn) {
+    // 获取当前评论内容
+    const commentItem = btn.closest('.comment-item');
+    const contentDiv = commentItem.querySelector('.comment-content');
+    const currentContent = contentDiv.innerText;
+    
+    // 创建编辑界面
+    const textarea = document.createElement('textarea');
+    textarea.value = currentContent;
+    textarea.style.cssText = 'width: 100%; min-height: 100px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-family: inherit; font-size: 0.95rem; resize: vertical;';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'margin-top: 10px; display: flex; gap: 10px;';
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.innerText = '保存';
+    saveBtn.style.cssText = 'padding: 6px 16px; background: #0070f3; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.innerText = '取消';
+    cancelBtn.style.cssText = 'padding: 6px 16px; background: #e2e8f0; color: #333; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;';
+    
+    buttonContainer.appendChild(saveBtn);
+    buttonContainer.appendChild(cancelBtn);
+    
+    // 替换内容为编辑界面
+    contentDiv.innerHTML = '';
+    contentDiv.appendChild(textarea);
+    contentDiv.appendChild(buttonContainer);
+    
+    // 隐藏原来的按钮
+    const footer = commentItem.querySelector('.comment-footer');
+    footer.style.display = 'none';
+    
+    // 取消按钮事件
+    cancelBtn.onclick = function() {
+      loadComments(); // 重新加载评论
+    };
+    
+    // 保存按钮事件
+    saveBtn.onclick = async function() {
+      const newContent = textarea.value.trim();
+      if (!newContent) return alert('评论内容不能为空');
+      if (newContent.length > maxCommentLength) return alert(\`评论内容过长，不能超过 \${maxCommentLength} 个字符\`);
+      
+      saveBtn.disabled = true;
+      saveBtn.innerText = '保存中...';
+      
+      try {
+        const visitorId = localStorage.getItem('extalk_visitor_id');
+        const res = await fetch(\`\${API_ENDPOINT}/comments/\${id}\`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(currentUser?.token ? { 'Authorization': \`Bearer \${currentUser.token}\` } : {})
+          },
+          body: JSON.stringify({
+            content: newContent,
+            visitor_id: visitorId
+          })
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          // 重新加载评论
+          loadComments();
+        } else {
+          const error = await res.text();
+          alert('编辑失败：' + error);
+          loadComments();
+        }
+      } catch(e) {
+        alert('请求失败，请重试');
+        loadComments();
+      }
+    };
+    
+    // 自动聚焦到文本框
+    textarea.focus();
+  };
+  
+  // 举报评论功能
+  window.reportComment = async function(id, btn) {
+    // 弹出 hCaptcha 验证窗口
+    if (typeof hcaptcha === 'undefined') {
+      return alert('验证码加载失败，请刷新页面重试');
+    }
+    
+    try {
+      const captchaToken = await new Promise((resolve, reject) => {
+        // 显示 hCaptcha 验证窗口
+        const captchaId = hcaptcha.render('hcaptcha-container', {
+          sitekey: HCAPTCHA_SITE_KEY,
+          callback: resolve,
+          'expired-callback': () => reject(new Error('验证码已过期')),
+          'error-callback': () => reject(new Error('验证码加载失败'))
+        });
+        
+        // 如果验证窗口没有自动显示，手动显示
+        setTimeout(() => {
+          const captchaWidget = document.getElementById('hcaptcha-container');
+          if (captchaWidget && captchaWidget.style.display === 'none') {
+            captchaWidget.style.display = 'block';
+          }
+        }, 100);
+      });
+      
+      // 验证成功，继续举报
+      btn.disabled = true;
+      btn.innerText = '处理中...';
+      btn.style.color = '#64748b';
+      
+      const visitorId = localStorage.getItem('extalk_visitor_id');
+      const res = await fetch(\`\${API_ENDPOINT}/comments/\${id}/report\`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitor_id: visitorId,
+          reason: '不当内容',
+          hcaptcha_token: captchaToken
+        })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          alert('举报成功，感谢您的反馈！');
+          btn.innerText = '已举报';
+          btn.style.color = '#ef4444';
+          // 如果评论被自动隐藏，重新加载评论
+          if (data.hidden) {
+            setTimeout(() => loadComments(), 1000);
+          }
+        }
+      } else {
+        const error = await res.text();
+        alert('举报失败：' + error);
+        btn.disabled = false;
+        btn.innerText = '举报';
+        btn.style.color = '#64748b';
+      }
+      
+      // 重置 hCaptcha
+      hcaptcha.reset();
+    } catch (err) {
+      console.error('举报失败:', err);
+      alert('验证失败或网络错误，请稍后重试');
+      btn.disabled = false;
+      btn.innerText = '举报';
+      btn.style.color = '#64748b';
+    }
+  };
 
   async function submitComment() {
     const contentInput = document.getElementById('comment-content');
@@ -1482,6 +2240,13 @@ export default {
       });
       
       if (res.ok) {
+        const data = await res.json();
+        
+        // 保存 visitor_id 到 localStorage（游客用户）
+        if (data.visitor_id) {
+          localStorage.setItem('extalk_visitor_id', data.visitor_id);
+        }
+        
         contentInput.value = '';
         cancelReply();
         if (window.hcaptcha && hcaptchaWidgetId !== null) {
@@ -1531,6 +2296,56 @@ export default {
       });
     }
 
+    // Serve Auto-Integrate Script
+    if (url.pathname === "/auto-integrate.js") {
+      const autoIntegrateCode = `(function() {
+  // 自动检测页面类型并集成
+  function autoIntegrate() {
+    if (window.__extalk_auto_integrated) return;
+    window.__extalk_auto_integrated = true;
+    
+    const commentsDiv = document.createElement('div');
+    commentsDiv.id = 'extalk-comments';
+    commentsDiv.style.cssText = 'width: 100%; margin: 40px auto 0; padding-top: 40px; border-top: 1px solid #e5e7eb;';
+    commentsDiv.innerHTML = '<h2 style="text-align: center; margin-bottom: 20px; color: #333;">💬 评论</h2><div id="extalk-comments-inner" style="margin-top: 20px;"></div>';
+    
+    let insertPosition = null;
+    const articleSelectors = ['article', '.post', '.article', '.blog-post', '[role="main"]', '.content', '.page-content'];
+    
+    for (let selector of articleSelectors) {
+      const article = document.querySelector(selector);
+      if (article) {
+        insertPosition = article;
+        break;
+      }
+    }
+    
+    if (insertPosition) {
+      insertPosition.parentNode.insertBefore(commentsDiv, insertPosition.nextSibling);
+    } else {
+      document.body.appendChild(commentsDiv);
+    }
+    
+    const script = document.createElement('script');
+    script.src = 'https://comment.upxuu.com/sdk.js';
+    script.async = true;
+    document.body.appendChild(script);
+    
+    console.log('✅ ExTalk 评论系统已自动集成');
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoIntegrate);
+  } else {
+    autoIntegrate();
+  }
+})();`;
+      
+      return new Response(autoIntegrateCode, {
+        headers: { ...corsHeaders, "Content-Type": "application/javascript; charset=utf-8" },
+      });
+    }
+
     // Auth Handlers
     if (url.pathname === "/auth/register" && request.method === "POST") {
       const { email, nickname, password, hcaptcha_token } = await request.json() as any;
@@ -1575,6 +2390,188 @@ export default {
           .run();
         
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+
+    // POST /comments/:id/report (举报评论)
+    if (request.method === "POST" && url.pathname.match(/^\/comments\/\d+\/report$/)) {
+      const commentId = parseInt(url.pathname.split("/")[2]);
+      const { visitor_id, reason, hcaptcha_token } = await request.json() as any;
+      
+      // hCaptcha 验证
+      if (!hcaptcha_token) {
+        return new Response("hCaptcha token required", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+      
+      const hcaptchaParams = new URLSearchParams();
+      hcaptchaParams.append("secret", env.HCAPTCHA_SECRET);
+      hcaptchaParams.append("response", hcaptcha_token);
+      
+      const hcaptchaRes = await fetch("https://hcaptcha.com/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: hcaptchaParams
+      });
+      const hcaptchaData = await hcaptchaRes.json();
+      if (!hcaptchaData.success) {
+        return new Response("hCaptcha verification failed", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+      
+      // 获取 IP
+      const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+      
+      // 检查评论是否存在
+      const comment = await env.DB.prepare("SELECT * FROM comments WHERE id = ?").bind(commentId).first() as any;
+      if (!comment) return new Response("Comment not found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      // 检查是否已经举报过
+      const existingReport = await env.DB.prepare(
+        "SELECT * FROM comment_reports WHERE comment_id = ? AND (reporter_ip = ? OR reporter_visitor_id = ?)"
+      ).bind(commentId, ip, visitor_id).first();
+      
+      if (existingReport) {
+        return new Response("Already reported", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+      
+      // 记录举报
+      await env.DB.prepare(
+        "INSERT INTO comment_reports (comment_id, reporter_ip, reporter_visitor_id, reason) VALUES (?, ?, ?, ?)"
+      ).bind(commentId, ip, visitor_id, reason || '不当内容').run();
+      
+      // 更新评论举报计数
+      const newCount = (comment.report_count || 0) + 1;
+      const isReported = newCount >= 1;
+      
+      // 获取自动隐藏阈值
+      const threshold = await env.DB.prepare("SELECT auto_hide_threshold FROM users WHERE role = 'admin' LIMIT 1").first() as any;
+      const autoHideThreshold = threshold?.auto_hide_threshold || 3;
+      
+      // 检查是否达到自动隐藏阈值
+      let isHidden = comment.is_hidden || 0;
+      let hidden = false;
+      
+      if (newCount >= autoHideThreshold && !isHidden) {
+        isHidden = 1;
+        hidden = true;
+        await env.DB.prepare(
+          "UPDATE comments SET report_count = ?, is_reported = 1, is_hidden = ? WHERE id = ?"
+        ).bind(newCount, isHidden, commentId).run();
+        
+        // 发送邮件通知管理员
+        const emailEnabled = await env.DB.prepare("SELECT email_notifications_enabled FROM users WHERE role = 'admin' LIMIT 1").first() as any;
+        if (emailEnabled?.email_notifications_enabled) {
+          // 获取管理员邮箱
+          const adminEmail = await env.DB.prepare("SELECT email FROM users WHERE role = 'admin' LIMIT 1").first() as any;
+          if (adminEmail?.email) {
+            // 构建邮件内容
+            const reportToken = crypto.randomUUID();
+            const deleteUrl = url.origin + "/admin/comments?delete=" + commentId + "&token=" + encodeURIComponent(reportToken);
+            const ignoreUrl = url.origin + "/admin/comments?ignore=" + commentId + "&token=" + encodeURIComponent(reportToken);
+            
+            const emailContent = `
+              <h2>评论被举报通知</h2>
+              <p>页面：<a href="${comment.page_url}">${comment.page_url}</a></p>
+              <p>评论内容：${escapeHtml(comment.content)}</p>
+              <p>举报次数：${newCount}</p>
+              <p>状态：已自动隐藏</p>
+              <hr>
+              <p>
+                <a href="${deleteUrl}" style="background: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-right: 10px;">删除评论</a>
+                <a href="${ignoreUrl}" style="background: #e2e8f0; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 6px;">忽略举报</a>
+              </p>
+            `;
+            
+            // 发送邮件（使用 Mailgun）
+            try {
+              await fetch("https://api.mailgun.net/v3/" + env.MAILGUN_DOMAIN + "/messages", {
+                method: "POST",
+                headers: {
+                  "Authorization": "Basic " + btoa("api:" + env.MAILGUN_API_KEY),
+                  "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: new URLSearchParams({
+                  from: "ExTalk <noreply@" + env.MAILGUN_DOMAIN + ">",
+                  to: adminEmail.email,
+                  subject: "🚨 评论被举报通知",
+                  html: emailContent
+                })
+              });
+            } catch (err) {
+              console.error("Failed to send email:", err);
+            }
+          }
+        }
+      } else {
+        await env.DB.prepare(
+          "UPDATE comments SET report_count = ?, is_reported = ? WHERE id = ?"
+        ).bind(newCount, isReported, commentId).run();
+      }
+      
+      return new Response(JSON.stringify({ success: true, hidden }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+
+    // GET /admin/reported-comments (获取被举报的评论)
+    if (url.pathname === "/admin/reported-comments" && request.method === "GET") {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) return new Response("Unauthorized", { status: 401, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+      if (!payload || payload.role !== 'admin') return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const comments = await env.DB.prepare(`
+        SELECT c.*, COUNT(cr.id) as report_count
+        FROM comments c
+        LEFT JOIN comment_reports cr ON c.id = cr.comment_id
+        WHERE c.is_reported = 1 OR c.is_hidden = 1
+        GROUP BY c.id
+        ORDER BY c.report_count DESC, c.created_at DESC
+      `).all();
+      
+      return new Response(JSON.stringify({ comments: comments.results }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // PUT /admin/comments/:id/hide (隐藏评论)
+    if (request.method === "PUT" && url.pathname.match(/^\/admin\/comments\/\d+\/hide$/)) {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) return new Response("Unauthorized", { status: 401, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+      if (!payload || payload.role !== 'admin') return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const commentId = parseInt(url.pathname.split("/")[3]);
+      await env.DB.prepare("UPDATE comments SET is_hidden = 1 WHERE id = ?").bind(commentId).run();
+      
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // PUT /admin/comments/:id/restore (恢复评论)
+    if (request.method === "PUT" && url.pathname.match(/^\/admin\/comments\/\d+\/restore$/)) {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) return new Response("Unauthorized", { status: 401, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+      if (!payload || payload.role !== 'admin') return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const commentId = parseInt(url.pathname.split("/")[3]);
+      await env.DB.prepare("UPDATE comments SET is_hidden = 0 WHERE id = ?").bind(commentId).run();
+      
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // PUT /admin/comments/:id/ignore-reports (忽略举报)
+    if (request.method === "PUT" && url.pathname.match(/^\/admin\/comments\/\d+\/ignore-reports$/)) {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) return new Response("Unauthorized", { status: 401, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+      if (!payload || payload.role !== 'admin') return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const commentId = parseInt(url.pathname.split("/")[3]);
+      await env.DB.prepare(`
+        UPDATE comments SET report_count = 0, is_reported = 0 WHERE id = ?;
+        DELETE FROM comment_reports WHERE comment_id = ?;
+      `).bind(commentId, commentId).run();
+      
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
 
     if (url.pathname === "/auth/verify" && request.method === "POST") {
@@ -2038,6 +3035,43 @@ export default {
         const result = await syncCommentsToAdmin(env, true);
         return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
       }
+      
+      // 热度配置 API
+      if (url.pathname === "/admin/heat-settings" && request.method === "GET") {
+        const settings = await env.DB.prepare("SELECT * FROM heat_settings LIMIT 1").first();
+        return new Response(JSON.stringify(settings || { like_weight: 1.0, reply_weight: 2.0, time_decay_factor: 0.5 }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      }
+      if (url.pathname === "/admin/heat-settings" && request.method === "PUT") {
+        const { like_weight, reply_weight, time_decay_factor } = await request.json() as any;
+        await env.DB.prepare(`
+          UPDATE heat_settings 
+          SET like_weight = ?, reply_weight = ?, time_decay_factor = ?, updated_at = datetime('now', '+8 hours')
+          WHERE id = 1
+        `).bind(like_weight, reply_weight, time_decay_factor).run();
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      }
+      
+      // 系统配置 API
+      if (url.pathname === "/admin/config" && request.method === "GET") {
+        const config = await env.DB.prepare("SELECT max_comment_length FROM users WHERE role = 'admin' LIMIT 1").first();
+        return new Response(JSON.stringify(config || { max_comment_length: 500 }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      }
+      if (url.pathname === "/admin/config" && request.method === "PUT") {
+        const { max_comment_length } = await request.json() as any;
+        await env.DB.prepare("UPDATE users SET max_comment_length = ? WHERE role = 'admin'").bind(max_comment_length).run();
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      }
+      
+      // 同步配置 API
+      if (url.pathname === "/admin/sync-settings" && request.method === "GET") {
+        const settings = await env.DB.prepare("SELECT sync_interval_minutes FROM users WHERE role = 'admin' LIMIT 1").first();
+        return new Response(JSON.stringify(settings || { sync_interval_minutes: 60 }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      }
+      if (url.pathname === "/admin/sync-settings" && request.method === "PUT") {
+        const { sync_interval_minutes } = await request.json() as any;
+        await env.DB.prepare("UPDATE users SET sync_interval_minutes = ? WHERE role = 'admin'").bind(sync_interval_minutes).run();
+        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      }
     }
 
     // One-time Admin Init
@@ -2063,57 +3097,108 @@ export default {
       const page = parseInt(url.searchParams.get("page") || "1");
       const limit = parseInt(url.searchParams.get("limit") || "6");
       const offset = (page - 1) * limit;
+      const sortBy = url.searchParams.get("sort") || "time"; // time, hot
 
-      // 使用 CTE 优化查询（5 次 → 3 次）
-      // 1. 获取根评论和回复
-      const rootCommentsRes = await env.DB.prepare(
-        `SELECT * FROM comments 
-         WHERE page_url = ? AND parent_id IS NULL 
-         ORDER BY created_at DESC 
-         LIMIT ? OFFSET ?`
-      ).bind(pageUrl, limit, offset).all();
-      const rootCommentsPage = rootCommentsRes.results as any[];
+      // 获取热度配置
+      const heatSettings = await env.DB.prepare("SELECT * FROM heat_settings LIMIT 1").first() as any;
+      const likeWeight = heatSettings?.like_weight || 1.0;
+      const replyWeight = heatSettings?.reply_weight || 2.0;
+      const timeDecayFactor = heatSettings?.time_decay_factor || 0.5;
+
+      // 优化：并行执行所有独立查询（2 次并行查询）
+      const [commentsData, statsData] = await Promise.all([
+        // 1. 获取评论（根评论 + 所有回复）
+        (async () => {
+          // 根据排序方式获取根评论
+          let orderClause;
+          if (sortBy === 'hot') {
+            // 热评模式：按热度排序（点赞 + 回复数 - 时间衰减）
+            orderClause = `
+              ORDER BY 
+                (likes * ${likeWeight} + 
+                 (SELECT COUNT(*) FROM comments c2 WHERE c2.parent_id = comments.id) * ${replyWeight} -
+                 (JULIANDAY('now') - JULIANDAY(comments.created_at)) * ${timeDecayFactor}
+                ) DESC,
+                created_at DESC
+            `;
+          } else {
+            // 时间模式：按时间倒序
+            orderClause = `ORDER BY created_at DESC`;
+          }
+          
+          const rootCommentsRes = await env.DB.prepare(
+            `SELECT * FROM comments 
+             WHERE page_url = ? AND parent_id IS NULL 
+             ${orderClause}
+             LIMIT ? OFFSET ?`
+          ).bind(pageUrl, limit, offset).all();
+          const rootCommentsPage = rootCommentsRes.results as any[];
+          
+          // 获取所有回复（包括回复的回复）
+          let allReplies = [];
+          if (rootCommentsPage.length > 0) {
+            // 使用递归 CTE 获取所有层级的回复
+            const rootIds = rootCommentsPage.map((c: any) => c.id);
+            const rootIdsStr = rootIds.join(',');
+            
+            const repliesRes = await env.DB.prepare(`
+              WITH RECURSIVE comment_tree AS (
+                -- 基础：获取直接回复
+                SELECT * FROM comments 
+                WHERE page_url = ? AND parent_id IN (${rootIdsStr})
+                
+                UNION ALL
+                
+                -- 递归：获取回复的回复
+                SELECT c.* FROM comments c
+                INNER JOIN comment_tree ct ON c.parent_id = ct.id
+                WHERE c.page_url = ?
+              )
+              SELECT * FROM comment_tree ORDER BY created_at ASC
+            `).bind(pageUrl, pageUrl).all();
+            
+            allReplies = repliesRes.results as any[];
+          }
+          
+          return { rootComments: rootCommentsPage, replies: allReplies };
+        })(),
+        
+        // 2. 获取统计数据（并行执行）
+        (async () => {
+          const [countRes, statsRes] = await Promise.all([
+            env.DB.prepare(
+              `SELECT root_count as count FROM comment_counts WHERE page_url = ?`
+            ).bind(pageUrl).first(),
+            
+            env.DB.prepare(
+              `SELECT 
+                 COALESCE(pv.views, 0) as views,
+                 COALESCE(pv.likes, 0) as likes,
+                 COALESCE(u.max_comment_length, 500) as max_comment_length
+               FROM page_views pv
+               CROSS JOIN (SELECT max_comment_length FROM users WHERE role = 'admin' LIMIT 1) u
+               WHERE pv.page_url = ?`
+            ).bind(pageUrl).first()
+          ]);
+          
+          return {
+            total: (countRes as any)?.count || 0,
+            views: (statsRes as any)?.views || 0,
+            likes: (statsRes as any)?.likes || 0,
+            maxLength: (statsRes as any)?.max_comment_length || 500
+          };
+        })()
+      ]);
       
-      // 2. 获取回复（使用 IN 子查询）
-      let replies = [];
-      if (rootCommentsPage.length > 0) {
-        const rootIds = rootCommentsPage.map((c: any) => c.id);
-        const placeholders = rootIds.map(() => '?').join(',');
-        const repliesRes = await env.DB.prepare(
-          `SELECT * FROM comments 
-           WHERE page_url = ? AND parent_id IN (${placeholders}) 
-           ORDER BY created_at ASC`
-        ).bind(pageUrl, ...rootIds).all();
-        replies = repliesRes.results as any[];
-      }
-      
-      // 3. 使用计数缓存表（O(1) 查询）
-      const countRes = await env.DB.prepare(
-        `SELECT root_count as count FROM comment_counts WHERE page_url = ?`
-      ).bind(pageUrl).first() as any;
-      const total = countRes?.count || 0;
-      
-      // 4. 页面统计和管理员设置（合并为 1 次查询）
-      const statsRes = await env.DB.prepare(
-        `SELECT 
-           COALESCE(pv.views, 0) as views,
-           COALESCE(pv.likes, 0) as likes,
-           COALESCE(u.max_comment_length, 500) as max_comment_length
-         FROM page_views pv
-         CROSS JOIN (SELECT max_comment_length FROM users WHERE role = 'admin' LIMIT 1) u
-         WHERE pv.page_url = ?`
-      ).bind(pageUrl).first() as any;
-      
-      const views = statsRes?.views || 0;
-      const pageLikes = statsRes?.likes || 0;
-      const maxLength = statsRes?.max_comment_length || 500;
+      const { rootComments, replies } = commentsData;
+      const { total, views, likes, maxLength } = statsData;
 
       return new Response(JSON.stringify({ 
-        comments: [...rootCommentsPage, ...replies], 
+        comments: [...rootComments, ...replies], 
         total, 
         max_comment_length: maxLength, 
         views, 
-        page_likes: pageLikes 
+        page_likes: likes
       }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
 
@@ -2150,11 +3235,62 @@ export default {
         if (payload) userId = payload.id;
       }
 
-      await env.DB.prepare("INSERT INTO comments (page_url, nickname, content, parent_id, user_id, ip, location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+8 hours'))")
-        .bind(page_url, nickname, content, parent_id || null, userId, ip, location)
+      // 生成游客 ID（未登录用户）
+      const visitorId = userId ? null : (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36));
+
+      await env.DB.prepare("INSERT INTO comments (page_url, nickname, content, parent_id, user_id, visitor_id, ip, location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+8 hours'))")
+        .bind(page_url, nickname, content, parent_id || null, userId, visitorId, ip, location)
         .run();
 
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      return new Response(JSON.stringify({ success: true, visitor_id: visitorId }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+
+    // PUT /comments/:id (编辑评论)
+    if (request.method === "PUT" && url.pathname.match(/^\/comments\/\d+$/)) {
+      const commentId = parseInt(url.pathname.split("/").pop() || "0");
+      const { content, visitor_id } = await request.json() as any;
+      
+      if (!content) return new Response("Missing content", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      // 获取评论信息
+      const comment = await env.DB.prepare("SELECT * FROM comments WHERE id = ?").bind(commentId).first() as any;
+      if (!comment) return new Response("Comment not found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      // 检查编辑权限
+      let canEdit = false;
+      const authHeader = request.headers.get("Authorization");
+      if (authHeader) {
+        const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+        // 管理员可以编辑任何评论
+        if (payload?.role === 'admin') canEdit = true;
+        // 用户可以编辑自己的评论
+        if (payload?.id === comment.user_id) canEdit = true;
+      }
+      // 游客可以编辑自己的评论（通过 visitor_id 验证）
+      if (!canEdit && visitor_id && visitor_id === comment.visitor_id) canEdit = true;
+      
+      if (!canEdit) return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      // 检查是否在 5 分钟内
+      const now = new Date();
+      const createdAt = new Date(comment.created_at);
+      const minutesDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+      if (minutesDiff > 5 && comment.user_id === null) {
+        return new Response("Editing window expired (5 minutes for guests)", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+      
+      // 更新评论
+      const editedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
+      await env.DB.prepare("UPDATE comments SET content = ?, edited_at = ?, is_edited = 1 WHERE id = ?")
+        .bind(content, editedAt, commentId)
+        .run();
+      
+      // 记录编辑历史（管理员可见）
+      await env.DB.prepare("INSERT INTO comment_edits (comment_id, old_content, edited_at) VALUES (?, ?, ?)")
+        .bind(commentId, comment.content, editedAt)
+        .run();
+      
+      return new Response(JSON.stringify({ success: true, edited_at: editedAt }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
 
     return new Response("Not Found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });

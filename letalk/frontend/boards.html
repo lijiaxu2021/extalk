@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>论坛板块 - Letalk</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .page-header {
+            background: white;
+            padding: 30px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .breadcrumb {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .breadcrumb a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">Letalk</a>
+                <nav class="nav">
+                    <a href="/">首页</a>
+                    <a href="/boards.html">板块</a>
+                    <a href="/latest.html">最新</a>
+                </nav>
+                <div class="auth-buttons" id="auth-buttons"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-header">
+        <div class="container">
+            <h1 class="page-title">论坛板块</h1>
+            <div class="breadcrumb">
+                <a href="/">首页</a>
+                <span>/</span>
+                <span>论坛板块</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="main">
+        <div class="container">
+            <div id="boards-container" class="boards-section">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Letalk</h3>
+                    <p>一个现代化的论坛系统</p>
+                </div>
+                <div class="footer-section">
+                    <h3>链接</h3>
+                    <a href="/">首页</a>
+                    <a href="/boards.html">板块</a>
+                    <a href="/latest.html">最新</a>
+                </div>
+                <div class="footer-section">
+                    <h3>关于</h3>
+                    <a href="/about.html">关于我们</a>
+                    <a href="/rules.html">社区规则</a>
+                    <a href="/contact.html">联系我们</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Letalk Forum. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/assets/js/app.js"></script>
+    <script>
+        async function loadBoards() {
+            try {
+                const res = await fetch('/api/boards');
+                const data = await res.json();
+                const container = document.getElementById('boards-container');
+                
+                if (data.categories && data.categories.length > 0) {
+                    container.innerHTML = data.categories.map(cat => `
+                        <div class="category">
+                            <div class="category-header">
+                                <span class="category-icon">${cat.icon || '📁'}</span>
+                                <h3 class="category-name">${cat.name}</h3>
+                                <span class="category-desc">${cat.description || ''}</span>
+                            </div>
+                            <div class="category-boards">
+                                ${cat.boards.map(board => `
+                                    <a href="/board.html?slug=${board.slug}" class="board-card">
+                                        <div class="board-icon">${board.icon || '💬'}</div>
+                                        <div class="board-info">
+                                            <h4 class="board-name">${board.name}</h4>
+                                            <p class="board-desc">${board.description || '暂无描述'}</p>
+                                        </div>
+                                        <div class="board-stats">
+                                            <div class="board-stat">
+                                                <span class="stat-value">${board.thread_count || 0}</span>
+                                                <span class="stat-label">主题</span>
+                                            </div>
+                                            <div class="board-stat">
+                                                <span class="stat-value">${board.post_count || 0}</span>
+                                                <span class="stat-label">帖子</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="empty-state">暂无板块</div>';
+                }
+            } catch (e) {
+                console.error('Failed to load boards:', e);
+                document.getElementById('boards-container').innerHTML = '<div class="error">加载失败</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBoards();
+            updateAuthUI();
+        });
+    </script>
+</body>
+</html>

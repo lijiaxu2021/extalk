@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - Letalk 论坛</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .auth-page {
+            min-height: calc(100vh - 200px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .auth-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 420px;
+        }
+        .auth-title {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--text-primary);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: var(--primary-color);
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .submit-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 112, 243, 0.3);
+        }
+        .submit-btn:disabled {
+            background: #a0cfff;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .auth-footer {
+            text-align: center;
+            margin-top: 25px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .auth-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .captcha-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+        .otp-form {
+            display: none;
+        }
+        .otp-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .otp-input {
+            width: 45px;
+            height: 55px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .otp-input:focus {
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">Letalk</a>
+                <nav class="nav">
+                    <a href="/">首页</a>
+                    <a href="/boards.html">板块</a>
+                    <a href="/latest.html">最新</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="auth-page">
+        <div class="auth-card">
+            <h1 class="auth-title">注册新账号</h1>
+            
+            <!-- Step 1: Registration Form -->
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="nickname">昵称</label>
+                    <input type="text" id="nickname" class="form-input" placeholder="请输入昵称" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <input type="email" id="email" class="form-input" placeholder="请输入邮箱" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" class="form-input" placeholder="请输入密码" required minlength="6">
+                </div>
+                <div id="captcha-container" class="captcha-container"></div>
+                <button type="submit" class="submit-btn" id="submit-btn">发送验证码</button>
+            </form>
+            
+            <!-- Step 2: OTP Verification -->
+            <div id="otp-form" class="otp-form">
+                <p style="text-align: center; color: var(--text-secondary); margin-bottom: 15px;">
+                    验证码已发送至您的邮箱，请查收
+                </p>
+                <div class="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-input" data-index="0">
+                    <input type="text" maxlength="1" class="otp-input" data-index="1">
+                    <input type="text" maxlength="1" class="otp-input" data-index="2">
+                    <input type="text" maxlength="1" class="otp-input" data-index="3">
+                    <input type="text" maxlength="1" class="otp-input" data-index="4">
+                    <input type="text" maxlength="1" class="otp-input" data-index="5">
+                </div>
+                <button type="submit" class="submit-btn" id="otp-submit-btn">验证并注册</button>
+                <p style="text-align: center; margin-top: 20px;">
+                    <a href="javascript:void(0)" onclick="backToRegister()" style="color: var(--text-secondary); font-size: 14px;">返回修改信息</a>
+                </p>
+            </div>
+            
+            <div class="auth-footer">
+                已有账号？<a href="/login.html">立即登录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <script>
+        let captchaWidgetId = null;
+        let registrationData = null;
+        
+        // Initialize hCaptcha
+        function initCaptcha() {
+            if (window.hcaptcha) {
+                captchaWidgetId = window.hcaptcha.render('captcha-container', {
+                    sitekey: '10000000-ffff-ffff-ffff-000000000001'
+                });
+            }
+        }
+        
+        setTimeout(initCaptcha, 1000);
+
+        // OTP inputs auto-focus
+        document.querySelectorAll('.otp-input').forEach((input, idx) => {
+            input.oninput = (e) => {
+                if (e.target.value && idx < 5) {
+                    document.querySelectorAll('.otp-input')[idx + 1].focus();
+                }
+            };
+            input.onkeydown = (e) => {
+                if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                    document.querySelectorAll('.otp-input')[idx - 1].focus();
+                }
+            };
+        });
+
+        // Step 1: Register and send OTP
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nickname = document.getElementById('nickname').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submit-btn');
+            
+            let captchaToken = null;
+            if (window.hcaptcha && captchaWidgetId !== null) {
+                captchaToken = window.hcaptcha.getResponse(captchaWidgetId);
+            }
+            
+            if (!captchaToken) {
+                alert('请先完成人机验证');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '发送中...';
+            
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname, email, password, hcaptcha_token: captchaToken })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    registrationData = { email, password };
+                    document.getElementById('register-form').style.display = 'none';
+                    document.getElementById('otp-form').style.display = 'block';
+                    // Focus first OTP input
+                    setTimeout(() => document.querySelectorAll('.otp-input')[0].focus(), 100);
+                } else {
+                    alert(data.error || '注册失败');
+                    if (window.hcaptcha) window.hcaptcha.reset(captchaWidgetId);
+                }
+            } catch (err) {
+                alert('网络错误，请稍后重试');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '发送验证码';
+            }
+        });
+
+        // Step 2: Verify OTP
+        document.getElementById('otp-submit-btn').addEventListener('click', async () => {
+            const otpInputs = document.querySelectorAll('.otp-input');
+            const otp = Array.from(otpInputs).map(i => i.value).join('');
+            
+            if (otp.length !== 6) {
+                alert('请输入 6 位验证码');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('otp-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '验证中...';
+            
+            try {
+                const res = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: registrationData.email, token: otp })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert('验证成功，请登录');
+                    window.location.href = '/login.html';
+                } else {
+                    alert(data.error || '验证失败');
+                }
+            } catch (err) {
+                alert('网络错误，请稍后重试');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '验证并注册';
+            }
+        });
+
+        function backToRegister() {
+            document.getElementById('register-form').style.display = 'block';
+            document.getElementById('otp-form').style.display = 'none';
+            registrationData = null;
+        }
+    </script>
+</body>
+</html>

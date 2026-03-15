@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - Letalk 论坛</title>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <style>
+        .auth-page {
+            min-height: calc(100vh - 200px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .auth-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 420px;
+        }
+        .auth-title {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--text-primary);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: var(--primary-color);
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .submit-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 112, 243, 0.3);
+        }
+        .submit-btn:disabled {
+            background: #a0cfff;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .auth-footer {
+            text-align: center;
+            margin-top: 25px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .auth-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .captcha-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">Letalk</a>
+                <nav class="nav">
+                    <a href="/">首页</a>
+                    <a href="/boards.html">板块</a>
+                    <a href="/latest.html">最新</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="auth-page">
+        <div class="auth-card">
+            <h1 class="auth-title">登录</h1>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <input type="email" id="email" class="form-input" placeholder="请输入邮箱" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" class="form-input" placeholder="请输入密码" required>
+                </div>
+                <div id="captcha-container" class="captcha-container"></div>
+                <button type="submit" class="submit-btn" id="submit-btn">登录</button>
+            </form>
+            <div class="auth-footer">
+                还没有账号？<a href="/register.html">立即注册</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <script>
+        let captchaWidgetId = null;
+        
+        // Initialize hCaptcha
+        function initCaptcha() {
+            if (window.hcaptcha) {
+                captchaWidgetId = window.hcaptcha.render('captcha-container', {
+                    sitekey: '10000000-ffff-ffff-ffff-000000000001' // Test key
+                });
+            }
+        }
+        
+        // Wait for hCaptcha to load
+        setTimeout(initCaptcha, 1000);
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submit-btn');
+            
+            // Get captcha token
+            let captchaToken = null;
+            if (window.hcaptcha && captchaWidgetId !== null) {
+                captchaToken = window.hcaptcha.getResponse(captchaWidgetId);
+            }
+            
+            if (!captchaToken) {
+                alert('请先完成人机验证');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '登录中...';
+            
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, hcaptcha_token: captchaToken })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    localStorage.setItem('letalk_user', JSON.stringify(data.user));
+                    alert('登录成功！');
+                    window.location.href = '/';
+                } else {
+                    alert(data.error || '登录失败');
+                    if (window.hcaptcha) window.hcaptcha.reset(captchaWidgetId);
+                }
+            } catch (err) {
+                alert('网络错误，请稍后重试');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '登录';
+            }
+        });
+    </script>
+</body>
+</html>
