@@ -768,7 +768,11 @@ export default {
     // 全局 onload 回调
     window.onloadCallback = () => {
       console.log('hCaptcha 脚本加载完成');
-      // 不再需要预加载 widget，评论和举报时使用弹出式验证
+      // 初始化登录/注册表单的 hCaptcha widget
+      if (window.hcaptcha) {
+        authHcaptchaWidgetId = window.hcaptcha.render('auth-hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
+        console.log('Auth hCaptcha widget initialized:', authHcaptchaWidgetId);
+      }
     };
 
     document.getElementById('form-toggle').onclick = () => {
@@ -1108,13 +1112,18 @@ export default {
         }
         
         // 构建作者信息 HTML
-              const authorBadge = currentUser && currentUser.id === c.user_id ? 
-                (c.github_id ? 
-                  '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#24292e;color:white;display:inline-flex;align-items:center;gap:4px;"><svg style="width:14px;height:14px;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>GitHub</span>' :
-                  '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#22c55e;color:white;">已登录</span>') : 
-                  !c.user_id ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#94a3b8;color:white;">游客</span>' : '';
-              // 检查评论作者是否是管理员
-              const adminBadge = c.role === 'admin' ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#3b82f6;color:white;">管理</span>' : '';
+        // 逻辑：
+        // 1. 如果评论有 user_id，说明是登录用户发布的
+        //    - 如果有 github_id，显示 GitHub 标识
+        //    - 否则显示普通"已登录"标识
+        // 2. 如果没有 user_id，说明是游客发布的，显示"游客"标识
+        const authorBadge = c.user_id ? 
+          (c.github_id ? 
+            '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#24292e;color:white;display:inline-flex;align-items:center;gap:4px;"><svg style="width:14px;height:14px;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>GitHub</span>' :
+            '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#22c55e;color:white;">已登录</span>') : 
+            '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#94a3b8;color:white;">游客</span>';
+        // 检查评论作者是否是管理员，如果是则显示自定义管理员昵称
+        const adminBadge = c.role === 'admin' ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#3b82f6;color:white;">' + (c.admin_nickname || '管理') + '</span>' : '';
               
               return \`
           <div class="comment-item" style="\${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
@@ -2483,6 +2492,143 @@ export default {
         
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
+    
+    // ============ 活动管理 API ============
+    
+    // GET /admin/activities (获取所有活动)
+    if (url.pathname === "/admin/activities" && request.method === "GET") {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) return new Response("Unauthorized", { status: 401, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+      if (!payload || payload.role !== 'admin') return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const activities = await env.DB.prepare(`
+        SELECT a.*, u.nickname as creator_name,
+               (SELECT COUNT(*) FROM activity_comments WHERE activity_id = a.id) as participant_count
+        FROM activities a
+        LEFT JOIN users u ON a.created_by = u.id
+        ORDER BY a.created_at DESC
+      `).all();
+      
+      return new Response(JSON.stringify({ activities: activities.results }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // POST /admin/activities (创建新活动)
+    if (url.pathname === "/admin/activities" && request.method === "POST") {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) return new Response("Unauthorized", { status: 401, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+      if (!payload || payload.role !== 'admin') return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const { title, description, template, label_color, start_time, end_time, target_date } = await request.json() as any;
+      
+      if (!title || !template) {
+        return new Response("Missing required fields", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+      
+      const result = await env.DB.prepare(`
+        INSERT INTO activities (title, description, template, label_color, start_time, end_time, target_date, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(title, description || '', template, label_color || '#0070f3', start_time, end_time, target_date, payload.id).run();
+      
+      const activity = await env.DB.prepare("SELECT * FROM activities WHERE id = ?").bind(result.meta.last_row_id).first();
+      return new Response(JSON.stringify({ success: true, activity }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // PUT /admin/activities/:id (更新活动)
+    if (request.method === "PUT" && url.pathname.match(/^\/admin\/activities\/\d+$/)) {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) return new Response("Unauthorized", { status: 401, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+      if (!payload || payload.role !== 'admin') return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const activityId = parseInt(url.pathname.split("/")[3]);
+      const { title, description, template, label_color, start_time, end_time, target_date, is_active } = await request.json() as any;
+      
+      await env.DB.prepare(`
+        UPDATE activities 
+        SET title = ?, description = ?, template = ?, label_color = ?, start_time = ?, end_time = ?, target_date = ?, is_active = ?
+        WHERE id = ?
+      `).bind(title, description || '', template, label_color || '#0070f3', start_time, end_time, target_date, is_active !== undefined ? is_active : 1, activityId).run();
+      
+      const activity = await env.DB.prepare("SELECT * FROM activities WHERE id = ?").bind(activityId).first();
+      return new Response(JSON.stringify({ success: true, activity }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // DELETE /admin/activities/:id (删除活动)
+    if (request.method === "DELETE" && url.pathname.match(/^\/admin\/activities\/\d+$/)) {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader) return new Response("Unauthorized", { status: 401, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const payload = await verifyToken(authHeader.split(" ")[1], env.JWT_SECRET);
+      if (!payload || payload.role !== 'admin') return new Response("Forbidden", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      
+      const activityId = parseInt(url.pathname.split("/")[3]);
+      await env.DB.prepare("DELETE FROM activities WHERE id = ?").bind(activityId).run();
+      
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // POST /activities/:id/join (参与活动/+1)
+    if (request.method === "POST" && url.pathname.match(/^\/activities\/\d+\/join$/)) {
+      const activityId = parseInt(url.pathname.split("/")[2]);
+      const { nickname, content, hcaptcha_token } = await request.json() as any;
+      
+      // 验证 hCaptcha
+      if (hcaptcha_token) {
+        const hcaptchaParams = new URLSearchParams();
+        hcaptchaParams.append("secret", env.HCAPTCHA_SECRET_KEY);
+        hcaptchaParams.append("response", hcaptcha_token);
+        const hcaptchaRes = await fetch("https://hcaptcha.com/siteverify", { 
+          method: "POST", 
+          body: hcaptchaParams,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        });
+        if (!(await hcaptchaRes.json() as any).success) {
+          return new Response(JSON.stringify({ error: "人机验证失败" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+        }
+      }
+      
+      // 检查活动是否存在
+      const activity = await env.DB.prepare("SELECT * FROM activities WHERE id = ? AND is_active = 1").bind(activityId).first() as any;
+      if (!activity) {
+        return new Response("Activity not found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+      
+      // 创建评论
+      const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+      const location = await getLocation(ip);
+      
+      const result = await env.DB.prepare(`
+        INSERT INTO comments (page_url, content, nickname, ip, location, user_id)
+        VALUES (?, ?, ?, ?, ?, NULL)
+      `).bind(activity.title, content, nickname || '匿名用户', ip, location).run();
+      
+      const commentId = result.meta.last_row_id;
+      
+      // 记录活动参与
+      await env.DB.prepare("INSERT INTO activity_comments (activity_id, comment_id) VALUES (?, ?)")
+        .bind(activityId, commentId).run();
+      
+      return new Response(JSON.stringify({ success: true, comment_id: commentId }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // GET /activities (获取所有活跃活动)
+    if (url.pathname === "/activities" && request.method === "GET") {
+      const activities = await env.DB.prepare(`
+        SELECT a.*, u.nickname as creator_name,
+               (SELECT COUNT(*) FROM activity_comments WHERE activity_id = a.id) as participant_count
+        FROM activities a
+        LEFT JOIN users u ON a.created_by = u.id
+        WHERE a.is_active = 1
+        ORDER BY a.created_at DESC
+      `).all();
+      
+      return new Response(JSON.stringify({ activities: activities.results }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
 
     // POST /comments/:id/report (举报评论 - IP 频率限制)
     if (request.method === "POST" && url.pathname.match(/^\/comments\/\d+\/report$/)) {
@@ -2707,45 +2853,92 @@ export default {
     
     // GET /github/callback (GitHub OAuth 回调)
     if (url.pathname === "/github/callback" && request.method === "GET") {
+      console.log('=== GitHub OAuth Callback Started ===');
+      console.log('URL:', url.toString());
+      console.log('Method:', request.method);
+      console.log('Query params:', url.searchParams.toString());
+      
       try {
         const code = url.searchParams.get("code");
+        console.log('Code:', code ? code.substring(0, 10) + '...' : 'MISSING');
+        
         if (!code) {
-          return new Response("Missing code", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+          return new Response("Missing code parameter", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
         }
         
-        // 1. 用 code 换取 access_token
+        // 1. 用 code 换取 access_token (使用 form-urlencoded 格式)
+        console.log('Exchanging code for token...');
+        console.log('Client ID:', env.GITHUB_CLIENT_ID ? 'exists' : 'missing');
+        console.log('Client Secret:', env.GITHUB_CLIENT_SECRET ? 'exists' : 'missing');
+        console.log('Code:', code ? code.substring(0, 10) + '...' : 'missing');
+        console.log('Redirect URI:', env.BASE_URL + "/github/callback");
+        
+        // 构建 form-urlencoded 请求体
+        const params = new URLSearchParams();
+        params.append('client_id', env.GITHUB_CLIENT_ID);
+        params.append('client_secret', env.GITHUB_CLIENT_SECRET);
+        params.append('code', code);
+        params.append('redirect_uri', env.BASE_URL + "/github/callback");
+        
+        console.log('Request body:', params.toString());
+        
         const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json"  // 明确要求返回 JSON 格式
           },
-          body: JSON.stringify({
-            client_id: env.GITHUB_CLIENT_ID,
-            client_secret: env.GITHUB_CLIENT_SECRET,
-            code: code,
-            redirect_uri: env.BASE_URL + "/github/callback"
-          })
+          body: params.toString()
         });
         
-        const tokenData = await tokenRes.json() as any;
-        console.log('GitHub token response:', tokenData);
+        console.log('Token response status:', tokenRes.status);
+        const tokenText = await tokenRes.text();
+        console.log('Token response text:', tokenText);
+        
+        let tokenData: any;
+        try {
+          tokenData = JSON.parse(tokenText);
+        } catch (e) {
+          console.error('Failed to parse token response:', e);
+          return new Response("GitHub API returned invalid response: " + tokenText.substring(0, 200), { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+        }
+        
+        console.log('Token data:', tokenData);
         if (!tokenData.access_token) {
           return new Response("Failed to get access token: " + JSON.stringify(tokenData), { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
         }
         
         // 2. 用 access_token 获取用户信息
+        console.log('Step 2: Fetching GitHub user info...');
         const userRes = await fetch("https://api.github.com/user", {
           headers: {
             "Authorization": "Bearer " + tokenData.access_token,
-            "Accept": "application/json"
+            "Accept": "application/json",
+            "User-Agent": "ExTalk-OAuth-App/1.0"  // GitHub 要求必须有 User-Agent
           }
         });
         
-        const githubUser = await userRes.json() as any;
+        console.log('User API response status:', userRes.status);
+        const userText = await userRes.text();
+        console.log('User API response:', userText.substring(0, 200));
+        
+        let githubUser: any;
+        try {
+          githubUser = JSON.parse(userText);
+        } catch (e) {
+          console.error('Failed to parse GitHub user response:', e);
+          return new Response(`<h1>GitHub User API Error</h1><p>Status: ${userRes.status}</p><p>Response: ${userText.substring(0, 500)}</p>`, { 
+            status: 400, 
+            headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
+          });
+        }
+        
         console.log('GitHub user response:', githubUser);
         if (!githubUser.id) {
-          return new Response("Failed to get GitHub user info", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+          return new Response(`<h1>GitHub User API Error</h1><p>No user id returned</p><p>Response: ${JSON.stringify(githubUser)}</p>`, { 
+            status: 400, 
+            headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
+          });
         }
         
         // 3. 检查用户是否已存在
@@ -2783,8 +2976,14 @@ export default {
           }
         }
       } catch (err) {
-        console.error('GitHub OAuth error:', err);
-        return new Response("Internal Server Error: " + err.message, { status: 500, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+        console.error('=== GitHub OAuth Error ===');
+        console.error('Error type:', err.constructor.name);
+        console.error('Error message:', err.message);
+        console.error('Error stack:', err.stack);
+        return new Response(`<h1>Internal Server Error</h1><p><strong>Error:</strong> ${err.message}</p><p><strong>Type:</strong> ${err.constructor.name}</p><p>Check Cloudflare Worker logs for full stack trace.</p>`, { 
+          status: 500, 
+          headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
+        });
       }
     }
     
@@ -3330,8 +3529,10 @@ export default {
           }
           
           const rootCommentsRes = await env.DB.prepare(
-            `SELECT * FROM comments 
-             WHERE page_url = ? AND parent_id IS NULL 
+            `SELECT c.*, u.github_id, u.github_username, u.github_avatar_url, u.role, u.admin_nickname
+             FROM comments c
+             LEFT JOIN users u ON c.user_id = u.id
+             WHERE c.page_url = ? AND c.parent_id IS NULL 
              ${orderClause}
              LIMIT ? OFFSET ?`
           ).bind(pageUrl, limit, offset).all();
@@ -3347,14 +3548,18 @@ export default {
             const repliesRes = await env.DB.prepare(`
               WITH RECURSIVE comment_tree AS (
                 -- 基础：获取直接回复
-                SELECT * FROM comments 
-                WHERE page_url = ? AND parent_id IN (${rootIdsStr})
+                SELECT c.*, u.github_id, u.github_username, u.github_avatar_url, u.role, u.admin_nickname
+                FROM comments c
+                LEFT JOIN users u ON c.user_id = u.id
+                WHERE c.page_url = ? AND c.parent_id IN (${rootIdsStr})
                 
                 UNION ALL
                 
                 -- 递归：获取回复的回复
-                SELECT c.* FROM comments c
+                SELECT c.*, u.github_id, u.github_username, u.github_avatar_url, u.role, u.admin_nickname
+                FROM comments c
                 INNER JOIN comment_tree ct ON c.parent_id = ct.id
+                LEFT JOIN users u ON c.user_id = u.id
                 WHERE c.page_url = ?
               )
               SELECT * FROM comment_tree ORDER BY created_at ASC
