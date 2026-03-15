@@ -1059,10 +1059,15 @@ export default {
             </div>\`;
         }
         
-        return \`
+        // 构建作者信息 HTML
+              const authorBadge = currentUser && currentUser.id === c.user_id ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#22c55e;color:white;">已登录</span>' : 
+                                  !c.user_id ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#94a3b8;color:white;">游客</span>' : '';
+              const adminBadge = currentUser && currentUser.role === 'admin' ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#3b82f6;color:white;">管理</span>' : '';
+              
+              return \`
           <div class="comment-item" style="\${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
             <div class="comment-header">
-              <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${floorHtml}\${locationHtml}\${editedMark}</div>
+              <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${authorBadge}\${adminBadge}\${floorHtml}\${locationHtml}\${editedMark}</div>
               <span class="comment-meta">\${timeStr}</span>
             </div>
             <div class="comment-content" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.content)}</div>
@@ -1338,10 +1343,15 @@ export default {
         const timeStr = c.created_at;
         const liked = localStorage.getItem('liked_comment_' + c.id);
         
+        // 构建作者信息 HTML
+        const authorBadge = currentUser && currentUser.id === c.user_id ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#22c55e;color:white;">已登录</span>' : 
+                            !c.user_id ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#94a3b8;color:white;">游客</span>' : '';
+        const adminBadge = currentUser && currentUser.role === 'admin' ? '<span style="margin-left:6px;padding:2px 6px;border-radius:3px;font-size:0.75rem;background:#3b82f6;color:white;">管理</span>' : '';
+        
         return \`
           <div class="comment-item" style="\${level > 0 ? 'margin-top: 5px; border: none; padding: 10px 0 10px 20px; border-left: 2px solid rgba(0, 112, 243, 0.1);' : ''}">
             <div class="comment-header">
-              <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${floorHtml}\${locationHtml}</div>
+              <div><span class="comment-author" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.nickname)}</span>\${authorBadge}\${adminBadge}\${floorHtml}\${locationHtml}</div>
               <span class="comment-meta">\${timeStr}</span>
             </div>
             <div class="comment-content" style="\${level > 0 ? 'font-size: 0.95rem;' : ''}">\${escapeHtml(c.content)}</div>
