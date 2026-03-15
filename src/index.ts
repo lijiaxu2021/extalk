@@ -239,10 +239,12 @@ export default {
       const baseUrl = env.BASE_URL || url.origin;
       const loadMode = env.LOAD_MODE || 'pagination'; // pagination, infinite, loadmore
       const hcaptchaSiteKey = env.HCAPTCHA_SITE_KEY || '09063bfe-9ca4-46d6-ae94-b7486344b53a';
+      const githubClientId = env.GITHUB_CLIENT_ID || '';
       const sdkCode = `(function() {
   const SCRIPT_URL = 'https://js.hcaptcha.com/1/api.js';
   const API_ENDPOINT = '${baseUrl}';
   const HCAPTCHA_SITE_KEY = '${hcaptchaSiteKey}';
+  const GITHUB_CLIENT_ID = '${githubClientId}';
   const LOAD_MODE = '${loadMode}'; // pagination, infinite, loadmore
 
   let replyingTo = null;
