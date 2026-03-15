@@ -2707,77 +2707,84 @@ export default {
     
     // GET /github/callback (GitHub OAuth 回调)
     if (url.pathname === "/github/callback" && request.method === "GET") {
-      const code = url.searchParams.get("code");
-      if (!code) {
-        return new Response("Missing code", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
-      }
-      
-      // 1. 用 code 换取 access_token
-      const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({
-          client_id: env.GITHUB_CLIENT_ID,
-          client_secret: env.GITHUB_CLIENT_SECRET,
-          code: code,
-          redirect_uri: env.BASE_URL + "/github/callback"
-        })
-      });
-      
-      const tokenData = await tokenRes.json() as any;
-      if (!tokenData.access_token) {
-        return new Response("Failed to get access token", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
-      }
-      
-      // 2. 用 access_token 获取用户信息
-      const userRes = await fetch("https://api.github.com/user", {
-        headers: {
-          "Authorization": "Bearer " + tokenData.access_token,
-          "Accept": "application/json"
+      try {
+        const code = url.searchParams.get("code");
+        if (!code) {
+          return new Response("Missing code", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
         }
-      });
-      
-      const githubUser = await userRes.json() as any;
-      if (!githubUser.id) {
-        return new Response("Failed to get GitHub user info", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
-      }
-      
-      // 3. 检查用户是否已存在
-      let user = await env.DB.prepare("SELECT * FROM users WHERE github_id = ?").bind(String(githubUser.id)).first() as any;
-      
-      if (user) {
-        // 老用户，直接登录
-        const token = await createToken({ id: user.id, email: user.email, role: user.role, github_id: user.github_id }, env.JWT_SECRET);
-        return renderLoginSuccess(token, user.nickname, user.role, githubUser.avatar_url);
-      } else {
-        // 新用户，创建账号
-        const email = githubUser.email || githubUser.login + "@users.noreply.github.com";
-        const nickname = githubUser.name || githubUser.login;
         
-        // 检查邮箱是否已存在
-        user = await env.DB.prepare("SELECT * FROM users WHERE email = ?").bind(email).first() as any;
+        // 1. 用 code 换取 access_token
+        const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({
+            client_id: env.GITHUB_CLIENT_ID,
+            client_secret: env.GITHUB_CLIENT_SECRET,
+            code: code,
+            redirect_uri: env.BASE_URL + "/github/callback"
+          })
+        });
+        
+        const tokenData = await tokenRes.json() as any;
+        console.log('GitHub token response:', tokenData);
+        if (!tokenData.access_token) {
+          return new Response("Failed to get access token: " + JSON.stringify(tokenData), { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+        }
+        
+        // 2. 用 access_token 获取用户信息
+        const userRes = await fetch("https://api.github.com/user", {
+          headers: {
+            "Authorization": "Bearer " + tokenData.access_token,
+            "Accept": "application/json"
+          }
+        });
+        
+        const githubUser = await userRes.json() as any;
+        console.log('GitHub user response:', githubUser);
+        if (!githubUser.id) {
+          return new Response("Failed to get GitHub user info", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+        }
+        
+        // 3. 检查用户是否已存在
+        let user = await env.DB.prepare("SELECT * FROM users WHERE github_id = ?").bind(String(githubUser.id)).first() as any;
+        
         if (user) {
-          // 邮箱已存在，绑定 GitHub
-          await env.DB.prepare("UPDATE users SET github_id = ?, github_username = ?, github_avatar_url = ? WHERE email = ?")
-            .bind(String(githubUser.id), githubUser.login, githubUser.avatar_url, email)
-            .run();
-          
+          // 老用户，直接登录
           const token = await createToken({ id: user.id, email: user.email, role: user.role, github_id: user.github_id }, env.JWT_SECRET);
           return renderLoginSuccess(token, user.nickname, user.role, githubUser.avatar_url);
         } else {
-          // 创建新用户
-          const passHash = await hashPassword(crypto.randomUUID());
-          const result = await env.DB.prepare(
-            "INSERT INTO users (email, nickname, password_hash, github_id, github_username, github_avatar_url, verified) VALUES (?, ?, ?, ?, ?, ?, 1)"
-          ).bind(email, nickname, passHash, String(githubUser.id), githubUser.login, githubUser.avatar_url).run();
+          // 新用户，创建账号
+          const email = githubUser.email || githubUser.login + "@users.noreply.github.com";
+          const nickname = githubUser.name || githubUser.login;
           
-          const newUser = await env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(result.meta.last_row_id).first() as any;
-          const token = await createToken({ id: newUser.id, email: newUser.email, role: newUser.role, github_id: newUser.github_id }, env.JWT_SECRET);
-          return renderLoginSuccess(token, newUser.nickname, newUser.role, githubUser.avatar_url);
+          // 检查邮箱是否已存在
+          user = await env.DB.prepare("SELECT * FROM users WHERE email = ?").bind(email).first() as any;
+          if (user) {
+            // 邮箱已存在，绑定 GitHub
+            await env.DB.prepare("UPDATE users SET github_id = ?, github_username = ?, github_avatar_url = ? WHERE email = ?")
+              .bind(String(githubUser.id), githubUser.login, githubUser.avatar_url, email)
+              .run();
+            
+            const token = await createToken({ id: user.id, email: user.email, role: user.role, github_id: user.github_id }, env.JWT_SECRET);
+            return renderLoginSuccess(token, user.nickname, user.role, githubUser.avatar_url);
+          } else {
+            // 创建新用户
+            const passHash = await hashPassword(crypto.randomUUID());
+            const result = await env.DB.prepare(
+              "INSERT INTO users (email, nickname, password_hash, github_id, github_username, github_avatar_url, verified) VALUES (?, ?, ?, ?, ?, ?, 1)"
+            ).bind(email, nickname, passHash, String(githubUser.id), githubUser.login, githubUser.avatar_url).run();
+            
+            const newUser = await env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(result.meta.last_row_id).first() as any;
+            const token = await createToken({ id: newUser.id, email: newUser.email, role: newUser.role, github_id: newUser.github_id }, env.JWT_SECRET);
+            return renderLoginSuccess(token, newUser.nickname, newUser.role, githubUser.avatar_url);
+          }
         }
+      } catch (err) {
+        console.error('GitHub OAuth error:', err);
+        return new Response("Internal Server Error: " + err.message, { status: 500, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
       }
     }
     
