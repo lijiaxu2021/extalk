@@ -742,12 +742,16 @@ export default {
 
     updateAuthUI();
 
+    // 加载 hCaptcha 脚本，使用 onload 参数确保完全加载
     const script = document.createElement('script');
-    script.src = SCRIPT_URL;
-    script.async = true; script.defer = true;
+    script.src = SCRIPT_URL + '?render=explicit&onload=onloadCallback';
+    script.async = true;
+    script.defer = true;
     document.head.appendChild(script);
 
-    script.onload = () => {
+    // 全局 onload 回调
+    window.onloadCallback = () => {
+      console.log('hCaptcha 脚本加载完成');
       if (window.hcaptcha) {
         hcaptchaWidgetId = window.hcaptcha.render('hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
         authHcaptchaWidgetId = window.hcaptcha.render('auth-hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
@@ -2151,11 +2155,12 @@ export default {
     // 立即更新按钮状态，给用户反馈
     const originalText = btn.innerText;
     const originalColor = btn.style.color;
-    btn.disabled = true;
-    btn.innerText = '加载中...';
-    btn.style.color = '#64748b';
     
     try {
+      btn.disabled = true;
+      btn.innerText = '加载中...';
+      btn.style.color = '#64748b';
+      
       // 创建临时 hCaptcha 验证（显式弹窗模式）
       const captchaToken = await new Promise((resolve, reject) => {
         // 5 秒后显示提示
@@ -2163,19 +2168,28 @@ export default {
           alert('请在弹出的窗口中完成人机验证');
         }, 5000);
         
+        // 创建一个隐藏的容器用于 invisible hCaptcha
+        const container = document.createElement('div');
+        container.style.display = 'none';
+        document.body.appendChild(container);
+        
         // 创建临时的 invisible hCaptcha
-        const captchaId = hcaptcha.render({
+        const captchaId = hcaptcha.render(container, {
           sitekey: HCAPTCHA_SITE_KEY,
           callback: (token) => {
             clearTimeout(hintTimeout);
+            // 清理容器
+            setTimeout(() => container.remove(), 1000);
             resolve(token);
           },
           'expired-callback': () => {
             clearTimeout(hintTimeout);
+            container.remove();
             reject(new Error('验证码已过期'));
           },
           'error-callback': (err) => {
             clearTimeout(hintTimeout);
+            container.remove();
             reject(new Error('验证失败：' + err));
           },
           size: 'invisible'
@@ -2185,10 +2199,14 @@ export default {
         hcaptcha.execute(captchaId);
       });
       
+      console.log('hCaptcha 验证成功，token:', captchaToken ? '存在' : '不存在');
+      
       // 验证成功，继续举报
       btn.innerText = '处理中...';
       
       const visitorId = localStorage.getItem('extalk_visitor_id');
+      console.log('发送举报请求，commentId:', id, 'visitorId:', visitorId);
+      
       const res = await fetch(API_ENDPOINT + '/comments/' + id + '/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2199,26 +2217,37 @@ export default {
         })
       });
       
+      console.log('举报响应状态:', res.status);
+      
+      // 无论成功失败，都恢复按钮状态
+      btn.disabled = false;
+      
       if (res.ok) {
         const data = await res.json();
+        console.log('举报响应数据:', data);
         if (data.success) {
           alert('举报成功，感谢您的反馈！');
           btn.innerText = '已举报';
           btn.style.color = '#ef4444';
+          btn.disabled = true; // 成功后保持禁用
           // 如果评论被自动隐藏，重新加载评论
           if (data.hidden) {
             setTimeout(() => loadComments(), 1000);
           }
+        } else {
+          alert('举报失败：' + (data.error || '未知错误'));
+          btn.innerText = originalText;
+          btn.style.color = originalColor;
         }
       } else {
         const error = await res.text();
+        console.error('举报失败，响应:', error);
         alert('举报失败：' + error);
-        btn.disabled = false;
         btn.innerText = originalText;
         btn.style.color = originalColor;
       }
     } catch (err) {
-      console.error('举报失败:', err);
+      console.error('举报异常:', err);
       alert('验证失败或网络错误，请稍后重试');
       btn.disabled = false;
       btn.innerText = originalText;
@@ -2241,11 +2270,26 @@ export default {
     try {
       // 使用 hCaptcha invisible 验证
       const hcaptchaToken = await new Promise((resolve, reject) => {
-        const captchaId = hcaptcha.render({
+        // 创建一个隐藏的容器
+        const container = document.createElement('div');
+        container.style.display = 'none';
+        document.body.appendChild(container);
+        
+        const captchaId = hcaptcha.render(container, {
           sitekey: HCAPTCHA_SITE_KEY,
-          callback: resolve,
-          'expired-callback': () => reject(new Error('验证码已过期')),
-          'error-callback': () => reject(new Error('验证失败')),
+          callback: (token) => {
+            // 清理容器
+            setTimeout(() => container.remove(), 1000);
+            resolve(token);
+          },
+          'expired-callback': () => {
+            container.remove();
+            reject(new Error('验证码已过期'));
+          },
+          'error-callback': () => {
+            container.remove();
+            reject(new Error('验证失败'));
+          },
           size: 'invisible'
         });
         hcaptcha.execute(captchaId);
