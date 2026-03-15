@@ -943,12 +943,15 @@ export default {
       }
     }
     
-    // Track page view
-    fetch(\`\${API_ENDPOINT}/view\`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ page_url: pageUrl })
-    }).catch(() => {});
+    // Track page view (只在第一次加载时记录浏览量)
+    if (currentPage === 1 && !window.__extalk_view_tracked) {
+      fetch(API_ENDPOINT + '/view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page_url: pageUrl })
+      }).catch(() => {});
+      window.__extalk_view_tracked = true;
+    }
 
     try {
       const response = await fetch(\`\${API_ENDPOINT}/comments?url=\${encodeURIComponent(pageUrl)}&page=\${currentPage}&limit=\${pageSize}&sort=\${sortType}\`);
@@ -2146,22 +2149,19 @@ export default {
     }
     
     try {
+      // 使用 hCaptcha 的 invisible 模式或显式弹窗
       const captchaToken = await new Promise((resolve, reject) => {
-        // 显示 hCaptcha 验证窗口
-        const captchaId = hcaptcha.render('hcaptcha-container', {
+        // 创建一个临时的 hCaptcha 验证（使用 invisible 模式）
+        const captchaId = hcaptcha.render({
           sitekey: HCAPTCHA_SITE_KEY,
           callback: resolve,
           'expired-callback': () => reject(new Error('验证码已过期')),
-          'error-callback': () => reject(new Error('验证码加载失败'))
+          'error-callback': () => reject(new Error('验证码加载失败')),
+          size: 'invisible' // 使用隐形模式，自动弹出验证窗口
         });
         
-        // 如果验证窗口没有自动显示，手动显示
-        setTimeout(() => {
-          const captchaWidget = document.getElementById('hcaptcha-container');
-          if (captchaWidget && captchaWidget.style.display === 'none') {
-            captchaWidget.style.display = 'block';
-          }
-        }, 100);
+        // 触发验证
+        hcaptcha.execute(captchaId);
       });
       
       // 验证成功，继续举报
@@ -2170,7 +2170,7 @@ export default {
       btn.style.color = '#64748b';
       
       const visitorId = localStorage.getItem('extalk_visitor_id');
-      const res = await fetch(\`\${API_ENDPOINT}/comments/\${id}/report\`, {
+      const res = await fetch(API_ENDPOINT + '/comments/' + id + '/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
