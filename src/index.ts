@@ -727,9 +727,15 @@ export default {
             <div id="auth-hcaptcha-container" style="margin-bottom: 15px;"></div>
             <button id="auth-submit" class="submit-btn" style="width:100%; margin-top:10px;">下一步</button>
             <p style="font-size:0.9rem; text-align:center; margin-top:20px; color: #64748b;">
-              <span id="auth-toggle-text">还没有账号？</span>
-              <a href="javascript:void(0)" id="auth-toggle" style="color: #0070f3; text-decoration: none; font-weight: 600;">立即注册</a>
-            </p>
+            <span id="auth-toggle-text">还没有账号？</span>
+            <a href="javascript:void(0)" id="auth-toggle" style="color: #0070f3; text-decoration: none; font-weight: 600;">立即注册</a>
+          </p>
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+            <button id="github-login-btn" style="width:100%; padding: 12px; background: #24292e; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <svg style="width:20px;height:20px;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+              使用 GitHub 账号登录
+            </button>
+          </div>
           </div>
           <div id="auth-otp-form" style="display:none;">
             <p style="text-align:center; margin-bottom:20px; color: #64748b; font-size: 0.9rem;">验证码已发送至您的邮箱，请查收</p>
@@ -799,6 +805,46 @@ export default {
         document.getElementById('auth-modal').style.display = 'block';
         resetAuthModal();
       }
+    };
+    
+    // GitHub 登录按钮
+    document.getElementById('github-login-btn').onclick = () => {
+      const githubAuthUrl = 'https://github.com/login/oauth/authorize?client_id=' + GITHUB_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(API_ENDPOINT + '/github/callback') + '&scope=user:email';
+      // 打开弹窗
+      const width = 600;
+      const height = 700;
+      const left = (screen.width - width) / 2;
+      const top = (screen.height - height) / 2;
+      const popup = window.open(
+        githubAuthUrl,
+        'GitHub Login',
+        'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',menubar=no,toolbar=no,location=no,status=no'
+      );
+      
+      // 监听消息
+      window.addEventListener('message', function handleMessage(event) {
+        if (event.data && event.data.type === 'github-login') {
+          window.removeEventListener('message', handleMessage);
+          
+          // 保存用户信息
+          const user = {
+            token: event.data.token,
+            nickname: event.data.nickname,
+            role: event.data.role,
+            github_id: event.data.github_id || event.data.avatar
+          };
+          localStorage.setItem('extalk_user', JSON.stringify(user));
+          currentUser = user;
+          
+          // 更新 UI
+          updateAuthUI();
+          loadComments();
+          
+          // 关闭弹窗
+          if (popup) popup.close();
+          document.getElementById('auth-modal').style.display = 'none';
+        }
+      });
     };
 
     window.onclick = (e) => {
@@ -2655,6 +2701,114 @@ export default {
 
       const token = await createToken({ id: user.id, email: user.email, role: user.role }, env.JWT_SECRET);
       return new Response(JSON.stringify({ token, nickname: user.nickname, role: user.role }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+    }
+    
+    // GET /github/callback (GitHub OAuth 回调)
+    if (url.pathname === "/github/callback" && request.method === "GET") {
+      const code = url.searchParams.get("code");
+      if (!code) {
+        return new Response("Missing code", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+      }
+      
+      // 1. 用 code 换取 access_token
+      const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          client_id: env.GITHUB_CLIENT_ID,
+          client_secret: env.GITHUB_CLIENT_SECRET,
+          code: code,
+          redirect_uri: env.BASE_URL + "/github/callback"
+        })
+      });
+      
+      const tokenData = await tokenRes.json() as any;
+      if (!tokenData.access_token) {
+        return new Response("Failed to get access token", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+      }
+      
+      // 2. 用 access_token 获取用户信息
+      const userRes = await fetch("https://api.github.com/user", {
+        headers: {
+          "Authorization": "Bearer " + tokenData.access_token,
+          "Accept": "application/json"
+        }
+      });
+      
+      const githubUser = await userRes.json() as any;
+      if (!githubUser.id) {
+        return new Response("Failed to get GitHub user info", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
+      }
+      
+      // 3. 检查用户是否已存在
+      let user = await env.DB.prepare("SELECT * FROM users WHERE github_id = ?").bind(String(githubUser.id)).first() as any;
+      
+      if (user) {
+        // 老用户，直接登录
+        const token = await createToken({ id: user.id, email: user.email, role: user.role, github_id: user.github_id }, env.JWT_SECRET);
+        return renderLoginSuccess(token, user.nickname, user.role, githubUser.avatar_url);
+      } else {
+        // 新用户，创建账号
+        const email = githubUser.email || githubUser.login + "@users.noreply.github.com";
+        const nickname = githubUser.name || githubUser.login;
+        
+        // 检查邮箱是否已存在
+        user = await env.DB.prepare("SELECT * FROM users WHERE email = ?").bind(email).first() as any;
+        if (user) {
+          // 邮箱已存在，绑定 GitHub
+          await env.DB.prepare("UPDATE users SET github_id = ?, github_username = ?, github_avatar_url = ? WHERE email = ?")
+            .bind(String(githubUser.id), githubUser.login, githubUser.avatar_url, email)
+            .run();
+          
+          const token = await createToken({ id: user.id, email: user.email, role: user.role, github_id: user.github_id }, env.JWT_SECRET);
+          return renderLoginSuccess(token, user.nickname, user.role, githubUser.avatar_url);
+        } else {
+          // 创建新用户
+          const passHash = await hashPassword(crypto.randomUUID());
+          const result = await env.DB.prepare(
+            "INSERT INTO users (email, nickname, password_hash, github_id, github_username, github_avatar_url, verified) VALUES (?, ?, ?, ?, ?, ?, 1)"
+          ).bind(email, nickname, passHash, String(githubUser.id), githubUser.login, githubUser.avatar_url).run();
+          
+          const newUser = await env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(result.meta.last_row_id).first() as any;
+          const token = await createToken({ id: newUser.id, email: newUser.email, role: newUser.role, github_id: newUser.github_id }, env.JWT_SECRET);
+          return renderLoginSuccess(token, newUser.nickname, newUser.role, githubUser.avatar_url);
+        }
+      }
+    }
+    
+    function renderLoginSuccess(token: string, nickname: string, role: string, avatarUrl: string) {
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>登录成功</title>
+            <script>
+              window.opener && window.opener.postMessage({
+                type: 'github-login',
+                token: '${token}',
+                nickname: '${nickname}',
+                role: '${role}',
+                avatar: '${avatarUrl}'
+              }, '*');
+              setTimeout(() => window.close(), 1000);
+            </script>
+          </head>
+          <body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+            <div style="text-align:center;">
+              <svg style="width:60px;height:60px;color:#22c55e;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <h2 style="color:#1e293b;margin:20px 0 10px;">登录成功！</h2>
+              <p style="color:#64748b;">正在关闭页面...</p>
+            </div>
+          </body>
+        </html>
+      `;
+      return new Response(html, { headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } });
     }
 
     // Domain Validation Middleware (for POST /comments)
