@@ -2152,52 +2152,37 @@ export default {
     const originalText = btn.innerText;
     const originalColor = btn.style.color;
     btn.disabled = true;
-    btn.innerText = '加载验证...';
+    btn.innerText = '加载中...';
     btn.style.color = '#64748b';
     
     try {
-      // 复用评论表单的 hCaptcha widget
-      // 先重置之前的验证（如果有）
-      if (hcaptchaWidgetId !== null) {
-        hcaptcha.reset(hcaptchaWidgetId);
-      }
-      
-      // 等待用户完成验证
+      // 创建临时 hCaptcha 验证（显式弹窗模式）
       const captchaToken = await new Promise((resolve, reject) => {
-        // 设置一个超时，防止用户一直不验证
-        const timeout = setTimeout(() => {
-          reject(new Error('验证超时'));
-        }, 60000); // 60 秒超时
+        // 5 秒后显示提示
+        const hintTimeout = setTimeout(() => {
+          alert('请在弹出的窗口中完成人机验证');
+        }, 5000);
         
-        // 监听验证完成
-        const checkInterval = setInterval(() => {
-          try {
-            const token = hcaptcha.getResponse(hcaptchaWidgetId);
-            if (token) {
-              clearTimeout(timeout);
-              clearInterval(checkInterval);
-              resolve(token);
-            }
-          } catch (e) {
-            // 验证还未完成，继续等待
-          }
-        }, 500);
+        // 创建临时的 invisible hCaptcha
+        const captchaId = hcaptcha.render({
+          sitekey: HCAPTCHA_SITE_KEY,
+          callback: (token) => {
+            clearTimeout(hintTimeout);
+            resolve(token);
+          },
+          'expired-callback': () => {
+            clearTimeout(hintTimeout);
+            reject(new Error('验证码已过期'));
+          },
+          'error-callback': (err) => {
+            clearTimeout(hintTimeout);
+            reject(new Error('验证失败：' + err));
+          },
+          size: 'invisible'
+        });
         
-        // 提示用户进行验证
-        setTimeout(() => {
-          alert('请在评论框下方完成人机验证，然后继续举报');
-          // 滚动到验证框
-          const captchaContainer = document.getElementById('hcaptcha-container');
-          if (captchaContainer) {
-            captchaContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // 高亮显示
-            captchaContainer.style.transition = 'all 0.3s';
-            captchaContainer.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-              captchaContainer.style.transform = 'scale(1)';
-            }, 300);
-          }
-        }, 100);
+        // 触发验证
+        hcaptcha.execute(captchaId);
       });
       
       // 验证成功，继续举报
@@ -2232,11 +2217,6 @@ export default {
         btn.innerText = originalText;
         btn.style.color = originalColor;
       }
-      
-      // 重置 hCaptcha
-      if (hcaptchaWidgetId !== null) {
-        hcaptcha.reset(hcaptchaWidgetId);
-      }
     } catch (err) {
       console.error('举报失败:', err);
       alert('验证失败或网络错误，请稍后重试');
@@ -2251,23 +2231,33 @@ export default {
     const content = contentInput.value.trim();
     const nickname = document.getElementById('comment-nickname').value.trim();
     
-    let hcaptchaToken = null;
-    if (window.hcaptcha && hcaptchaWidgetId !== null) {
-      hcaptchaToken = window.hcaptcha.getResponse(hcaptchaWidgetId);
-    } else {
-      hcaptchaToken = document.querySelector('[name="h-captcha-response"]')?.value;
-    }
-    
-    if (!content || !nickname || !hcaptchaToken) return alert('请填写完整昵称、内容并完成人机验证');
+    if (!content || !nickname) return alert('请填写完整昵称和内容');
     if (content.length > maxCommentLength) return alert(\`评论内容过长，不能超过 \${maxCommentLength} 个字符\`);
+    
     const submitBtn = document.getElementById('submit-comment');
-    submitBtn.disabled = true; submitBtn.innerText = '正在发布...';
+    submitBtn.disabled = true;
+    submitBtn.innerText = '验证中...';
+    
     try {
-      const res = await fetch(\`\${API_ENDPOINT}/comments\`, {
+      // 使用 hCaptcha invisible 验证
+      const hcaptchaToken = await new Promise((resolve, reject) => {
+        const captchaId = hcaptcha.render({
+          sitekey: HCAPTCHA_SITE_KEY,
+          callback: resolve,
+          'expired-callback': () => reject(new Error('验证码已过期')),
+          'error-callback': () => reject(new Error('验证失败')),
+          size: 'invisible'
+        });
+        hcaptcha.execute(captchaId);
+      });
+      
+      submitBtn.innerText = '发布中...';
+      
+      const res = await fetch(API_ENDPOINT + '/comments', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': currentUser ? \`Bearer \${currentUser.token}\` : ''
+          'Authorization': currentUser ? 'Bearer ' + currentUser.token : ''
         },
         body: JSON.stringify({
           page_url: window.location.pathname,
@@ -2285,14 +2275,11 @@ export default {
         
         contentInput.value = '';
         cancelReply();
-        if (window.hcaptcha && hcaptchaWidgetId !== null) {
-          window.hcaptcha.reset(hcaptchaWidgetId);
-        }
         // 重置到第一页并重新加载所有评论
         currentPage = 1;
         hasMorePages = true;
         totalPages = 1;
-        infiniteScrollInitialized = false; // 重置无限滚动初始化标志
+        infiniteScrollInitialized = false;
         
         // 清理旧的观察者
         if (observer) {
@@ -2317,11 +2304,13 @@ export default {
         const errorText = await res.text();
         alert('提交失败：' + errorText); 
       }
-    } catch (err) { 
+    } catch (err) {
       console.error('Submit error:', err);
-      alert('网络请求出错，请稍后重试'); 
+      alert('验证失败或网络错误，请稍后重试');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerText = '发布评论';
     }
-    finally { submitBtn.disabled = false; submitBtn.innerText = '发布评论'; }
   }
 
   function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
