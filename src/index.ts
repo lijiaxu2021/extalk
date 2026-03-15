@@ -693,7 +693,6 @@ export default {
         <div class="input-group">
           <textarea id="comment-content" class="comment-input" style="height: 120px; resize: vertical;" placeholder="写下你的想法..." required></textarea>
         </div>
-        <div id="hcaptcha-container" style="margin-bottom: 15px;"></div>
         <button id="submit-comment" class="submit-btn">发布评论</button>
       </div>
       
@@ -761,10 +760,7 @@ export default {
     // 全局 onload 回调
     window.onloadCallback = () => {
       console.log('hCaptcha 脚本加载完成');
-      if (window.hcaptcha) {
-        hcaptchaWidgetId = window.hcaptcha.render('hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
-        authHcaptchaWidgetId = window.hcaptcha.render('auth-hcaptcha-container', { sitekey: HCAPTCHA_SITE_KEY });
-      }
+      // 不再需要预加载 widget，评论和举报时使用弹出式验证
     };
 
     document.getElementById('form-toggle').onclick = () => {
@@ -2225,7 +2221,8 @@ export default {
     
     const submitBtn = document.getElementById('submit-comment');
     submitBtn.disabled = true;
-    submitBtn.innerText = '验证中...';
+    submitBtn.innerText = '正在加载验证组件...';
+    submitBtn.style.opacity = '0.7';
     
     try {
       // 使用 hCaptcha invisible 验证
@@ -2476,9 +2473,9 @@ export default {
           "UPDATE comments SET report_count = ?, is_reported = 1, is_hidden = ? WHERE id = ?"
         ).bind(newCount, isHidden, commentId).run();
         
-        // 发送邮件通知管理员
+        // 发送邮件通知管理员（需要配置 MAILGUN）
         const emailEnabled = await env.DB.prepare("SELECT email_notifications_enabled FROM users WHERE role = 'admin' LIMIT 1").first() as any;
-        if (emailEnabled?.email_notifications_enabled) {
+        if (emailEnabled?.email_notifications_enabled && env.MAILGUN_DOMAIN && env.MAILGUN_API_KEY) {
           // 获取管理员邮箱
           const adminEmail = await env.DB.prepare("SELECT email FROM users WHERE role = 'admin' LIMIT 1").first() as any;
           if (adminEmail?.email) {
