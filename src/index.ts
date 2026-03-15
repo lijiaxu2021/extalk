@@ -706,6 +706,15 @@ export default {
         <div id="admin-settings-content"></div>
       </div>
       
+      <!-- 评论管理面板 -->
+      <div id="admin-comments-panel" style="display: none; padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; color: #1e293b; font-size: 1.1rem;">评论管理</h3>
+          <button onclick="window.closeAdminPanel()" style="padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; cursor: pointer; font-size: 0.9rem;">关闭</button>
+        </div>
+        <div id="admin-comments-content"></div>
+      </div>
+      
       <div id="comments-list">正在加载评论...</div>
       <div id="pagination-container" class="pagination"></div>
       
@@ -1739,16 +1748,22 @@ export default {
   
   window.closeAdminPanel = function() {
     const settingsPanel = document.getElementById('admin-settings-panel');
+    const commentsPanel = document.getElementById('admin-comments-panel');
     const commentsList = document.getElementById('comments-list');
     const paginationContainer = document.getElementById('pagination-container');
     
-    // 丝滑隐藏设置面板
+    // 隐藏设置面板和评论管理面板
     settingsPanel.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
     settingsPanel.style.opacity = '0';
     settingsPanel.style.transform = 'translateX(20px)';
     
+    commentsPanel.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    commentsPanel.style.opacity = '0';
+    commentsPanel.style.transform = 'translateX(20px)';
+    
     setTimeout(() => {
       settingsPanel.style.display = 'none';
+      commentsPanel.style.display = 'none';
       
       // 显示评论列表
       commentsList.style.display = 'block';
@@ -1777,7 +1792,11 @@ export default {
     
     const commentsList = document.getElementById('comments-list');
     const paginationContainer = document.getElementById('pagination-container');
+    const commentsPanel = document.getElementById('admin-comments-panel');
     const settingsPanel = document.getElementById('admin-settings-panel');
+    
+    // 确保设置面板关闭
+    settingsPanel.style.display = 'none';
     
     // 隐藏评论列表和分页
     commentsList.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
@@ -1794,16 +1813,14 @@ export default {
       if (paginationContainer) paginationContainer.style.display = 'none';
       
       // 显示评论管理面板
-      settingsPanel.style.display = 'block';
-      settingsPanel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#1e293b;font-size:1.1rem;">评论管理</h3><button onclick="window.closeAdminPanel()" style="padding:8px 16px;border:1px solid #e2e8f0;border-radius:6px;background:white;cursor:pointer;font-size:0.9rem;">关闭</button></div><div id="admin-comments-content"><div style="text-align:center;padding:40px;color:#64748b;">加载中...</div></div>';
-      
-      settingsPanel.style.opacity = '0';
-      settingsPanel.style.transform = 'translateX(20px)';
-      settingsPanel.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+      commentsPanel.style.display = 'block';
+      commentsPanel.style.opacity = '0';
+      commentsPanel.style.transform = 'translateX(20px)';
+      commentsPanel.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
       
       setTimeout(() => {
-        settingsPanel.style.opacity = '1';
-        settingsPanel.style.transform = 'translateX(0)';
+        commentsPanel.style.opacity = '1';
+        commentsPanel.style.transform = 'translateX(0)';
         loadAdminComments();
       }, 50);
     }, 400);
@@ -2145,110 +2162,53 @@ export default {
     textarea.focus();
   };
   
-  // 举报评论功能
+  // 举报评论功能（简化版：IP 频率限制）
   window.reportComment = async function(id, btn) {
-    // 检查 hCaptcha 是否已加载
-    if (typeof hcaptcha === 'undefined') {
-      return alert('验证码加载失败，请刷新页面重试');
-    }
-    
-    // 立即更新按钮状态，给用户反馈
+    // 立即更新按钮状态
     const originalText = btn.innerText;
     const originalColor = btn.style.color;
+    btn.disabled = true;
+    btn.innerText = '处理中...';
+    btn.style.color = '#64748b';
     
     try {
-      btn.disabled = true;
-      btn.innerText = '加载中...';
-      btn.style.color = '#64748b';
-      
-      // 创建临时 hCaptcha 验证（显式弹窗模式）
-      const captchaToken = await new Promise((resolve, reject) => {
-        // 5 秒后显示提示
-        const hintTimeout = setTimeout(() => {
-          alert('请在弹出的窗口中完成人机验证');
-        }, 5000);
-        
-        // 创建一个隐藏的容器用于 invisible hCaptcha
-        const container = document.createElement('div');
-        container.style.display = 'none';
-        document.body.appendChild(container);
-        
-        // 创建临时的 invisible hCaptcha
-        const captchaId = hcaptcha.render(container, {
-          sitekey: HCAPTCHA_SITE_KEY,
-          callback: (token) => {
-            clearTimeout(hintTimeout);
-            // 清理容器
-            setTimeout(() => container.remove(), 1000);
-            resolve(token);
-          },
-          'expired-callback': () => {
-            clearTimeout(hintTimeout);
-            container.remove();
-            reject(new Error('验证码已过期'));
-          },
-          'error-callback': (err) => {
-            clearTimeout(hintTimeout);
-            container.remove();
-            reject(new Error('验证失败：' + err));
-          },
-          size: 'invisible'
-        });
-        
-        // 触发验证
-        hcaptcha.execute(captchaId);
-      });
-      
-      console.log('hCaptcha 验证成功，token:', captchaToken ? '存在' : '不存在');
-      
-      // 验证成功，继续举报
-      btn.innerText = '处理中...';
-      
       const visitorId = localStorage.getItem('extalk_visitor_id');
-      console.log('发送举报请求，commentId:', id, 'visitorId:', visitorId);
-      
       const res = await fetch(API_ENDPOINT + '/comments/' + id + '/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           visitor_id: visitorId,
-          reason: '不当内容',
-          hcaptcha_token: captchaToken
+          reason: '不当内容'
         })
       });
       
-      console.log('举报响应状态:', res.status);
-      
-      // 无论成功失败，都恢复按钮状态
-      btn.disabled = false;
-      
       if (res.ok) {
         const data = await res.json();
-        console.log('举报响应数据:', data);
         if (data.success) {
           alert('举报成功，感谢您的反馈！');
           btn.innerText = '已举报';
           btn.style.color = '#ef4444';
-          btn.disabled = true; // 成功后保持禁用
+          btn.disabled = true;
           // 如果评论被自动隐藏，重新加载评论
           if (data.hidden) {
             setTimeout(() => loadComments(), 1000);
           }
         } else {
           alert('举报失败：' + (data.error || '未知错误'));
+          btn.disabled = false;
           btn.innerText = originalText;
           btn.style.color = originalColor;
         }
       } else {
         const error = await res.text();
-        console.error('举报失败，响应:', error);
         alert('举报失败：' + error);
+        btn.disabled = false;
         btn.innerText = originalText;
         btn.style.color = originalColor;
       }
     } catch (err) {
       console.error('举报异常:', err);
-      alert('验证失败或网络错误，请稍后重试');
+      alert('网络错误，请稍后重试');
       btn.disabled = false;
       btn.innerText = originalText;
       btn.style.color = originalColor;
@@ -2461,44 +2421,35 @@ export default {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
 
-    // POST /comments/:id/report (举报评论)
+    // POST /comments/:id/report (举报评论 - IP 频率限制)
     if (request.method === "POST" && url.pathname.match(/^\/comments\/\d+\/report$/)) {
       const commentId = parseInt(url.pathname.split("/")[2]);
-      const { visitor_id, reason, hcaptcha_token } = await request.json() as any;
-      
-      // hCaptcha 验证
-      if (!hcaptcha_token) {
-        return new Response("hCaptcha token required", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
-      }
-      
-      const hcaptchaParams = new URLSearchParams();
-      hcaptchaParams.append("secret", env.HCAPTCHA_SECRET);
-      hcaptchaParams.append("response", hcaptcha_token);
-      
-      const hcaptchaRes = await fetch("https://hcaptcha.com/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: hcaptchaParams
-      });
-      const hcaptchaData = await hcaptchaRes.json();
-      if (!hcaptchaData.success) {
-        return new Response("hCaptcha verification failed", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
-      }
+      const { visitor_id, reason } = await request.json() as any;
       
       // 获取 IP
       const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+      
+      // 频率限制：检查过去 1 小时内该 IP 的举报次数
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+      const ipReports = await env.DB.prepare(
+        "SELECT COUNT(*) as count FROM comment_reports WHERE reporter_ip = ? AND created_at > ?"
+      ).bind(ip, oneHourAgo).first() as any;
+      
+      if (ipReports && ipReports.count >= 10) {
+        return new Response("举报频率过高，请稍后再试（每小时最多 10 次）", { status: 429, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      }
       
       // 检查评论是否存在
       const comment = await env.DB.prepare("SELECT * FROM comments WHERE id = ?").bind(commentId).first() as any;
       if (!comment) return new Response("Comment not found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
       
-      // 检查是否已经举报过
+      // 检查是否已经举报过（同一 IP 或 visitor_id 不能重复举报同一评论）
       const existingReport = await env.DB.prepare(
         "SELECT * FROM comment_reports WHERE comment_id = ? AND (reporter_ip = ? OR reporter_visitor_id = ?)"
       ).bind(commentId, ip, visitor_id).first();
       
       if (existingReport) {
-        return new Response("Already reported", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+        return new Response("您已经举报过此评论", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
       }
       
       // 记录举报
