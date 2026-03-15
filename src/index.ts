@@ -2221,7 +2221,7 @@ export default {
     
     const submitBtn = document.getElementById('submit-comment');
     submitBtn.disabled = true;
-    submitBtn.innerText = '正在加载验证组件...';
+    submitBtn.innerText = '正在加载验证组件...请耐心等待..';
     submitBtn.style.opacity = '0.7';
     
     try {
@@ -2420,110 +2420,115 @@ export default {
 
     // POST /comments/:id/report (举报评论 - IP 频率限制)
     if (request.method === "POST" && url.pathname.match(/^\/comments\/\d+\/report$/)) {
-      const commentId = parseInt(url.pathname.split("/")[2]);
-      const { visitor_id, reason } = await request.json() as any;
-      
-      // 获取 IP
-      const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-      
-      // 频率限制：检查过去 1 小时内该 IP 的举报次数
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
-      const ipReports = await env.DB.prepare(
-        "SELECT COUNT(*) as count FROM comment_reports WHERE reporter_ip = ? AND created_at > ?"
-      ).bind(ip, oneHourAgo).first() as any;
-      
-      if (ipReports && ipReports.count >= 10) {
-        return new Response("举报频率过高，请稍后再试（每小时最多 10 次）", { status: 429, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
-      }
-      
-      // 检查评论是否存在
-      const comment = await env.DB.prepare("SELECT * FROM comments WHERE id = ?").bind(commentId).first() as any;
-      if (!comment) return new Response("Comment not found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
-      
-      // 检查是否已经举报过（同一 IP 或 visitor_id 不能重复举报同一评论）
-      const existingReport = await env.DB.prepare(
-        "SELECT * FROM comment_reports WHERE comment_id = ? AND (reporter_ip = ? OR reporter_visitor_id = ?)"
-      ).bind(commentId, ip, visitor_id).first();
-      
-      if (existingReport) {
-        return new Response("您已经举报过此评论", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
-      }
-      
-      // 记录举报
-      await env.DB.prepare(
-        "INSERT INTO comment_reports (comment_id, reporter_ip, reporter_visitor_id, reason) VALUES (?, ?, ?, ?)"
-      ).bind(commentId, ip, visitor_id, reason || '不当内容').run();
-      
-      // 更新评论举报计数
-      const newCount = (comment.report_count || 0) + 1;
-      const isReported = newCount >= 1;
-      
-      // 获取自动隐藏阈值
-      const threshold = await env.DB.prepare("SELECT auto_hide_threshold FROM users WHERE role = 'admin' LIMIT 1").first() as any;
-      const autoHideThreshold = threshold?.auto_hide_threshold || 3;
-      
-      // 检查是否达到自动隐藏阈值
-      let isHidden = comment.is_hidden || 0;
-      let hidden = false;
-      
-      if (newCount >= autoHideThreshold && !isHidden) {
-        isHidden = 1;
-        hidden = true;
-        await env.DB.prepare(
-          "UPDATE comments SET report_count = ?, is_reported = 1, is_hidden = ? WHERE id = ?"
-        ).bind(newCount, isHidden, commentId).run();
+      try {
+        const body = await request.json() as any;
+        const commentId = parseInt(url.pathname.split("/")[2]);
+        const { visitor_id, reason } = body;
         
-        // 发送邮件通知管理员（需要配置 MAILGUN）
-        const emailEnabled = await env.DB.prepare("SELECT email_notifications_enabled FROM users WHERE role = 'admin' LIMIT 1").first() as any;
-        if (emailEnabled?.email_notifications_enabled && env.MAILGUN_DOMAIN && env.MAILGUN_API_KEY) {
-          // 获取管理员邮箱
-          const adminEmail = await env.DB.prepare("SELECT email FROM users WHERE role = 'admin' LIMIT 1").first() as any;
-          if (adminEmail?.email) {
-            // 构建邮件内容
-            const reportToken = crypto.randomUUID();
-            const deleteUrl = url.origin + "/admin/comments?delete=" + commentId + "&token=" + encodeURIComponent(reportToken);
-            const ignoreUrl = url.origin + "/admin/comments?ignore=" + commentId + "&token=" + encodeURIComponent(reportToken);
-            
-            const emailContent = `
-              <h2>评论被举报通知</h2>
-              <p>页面：<a href="${comment.page_url}">${comment.page_url}</a></p>
-              <p>评论内容：${escapeHtml(comment.content)}</p>
-              <p>举报次数：${newCount}</p>
-              <p>状态：已自动隐藏</p>
-              <hr>
-              <p>
-                <a href="${deleteUrl}" style="background: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-right: 10px;">删除评论</a>
-                <a href="${ignoreUrl}" style="background: #e2e8f0; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 6px;">忽略举报</a>
-              </p>
-            `;
-            
-            // 发送邮件（使用 Mailgun）
-            try {
-              await fetch("https://api.mailgun.net/v3/" + env.MAILGUN_DOMAIN + "/messages", {
-                method: "POST",
-                headers: {
-                  "Authorization": "Basic " + btoa("api:" + env.MAILGUN_API_KEY),
-                  "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: new URLSearchParams({
-                  from: "ExTalk <noreply@" + env.MAILGUN_DOMAIN + ">",
-                  to: adminEmail.email,
-                  subject: "🚨 评论被举报通知",
-                  html: emailContent
-                })
-              });
-            } catch (err) {
-              console.error("Failed to send email:", err);
+        // 获取 IP
+        const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+        
+        // 频率限制：检查过去 1 小时内该 IP 的举报次数（使用 SQLite datetime 函数）
+        const ipReports = await env.DB.prepare(
+          "SELECT COUNT(*) as count FROM comment_reports WHERE reporter_ip = ? AND datetime(created_at) > datetime('now', '-1 hour')"
+        ).bind(ip).first() as any;
+        
+        if (ipReports && ipReports.count >= 10) {
+          return new Response("举报频率过高，请稍后再试（每小时最多 10 次）", { status: 429, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+        }
+        
+        // 检查评论是否存在
+        const comment = await env.DB.prepare("SELECT * FROM comments WHERE id = ?").bind(commentId).first() as any;
+        if (!comment) return new Response("Comment not found", { status: 404, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+        
+        // 检查是否已经举报过（同一 IP 或 visitor_id 不能重复举报同一评论）
+        const existingReport = await env.DB.prepare(
+          "SELECT * FROM comment_reports WHERE comment_id = ? AND (reporter_ip = ? OR reporter_visitor_id = ?)"
+        ).bind(commentId, ip, visitor_id).first();
+        
+        if (existingReport) {
+          return new Response("您已经举报过此评论", { status: 400, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+        }
+        
+        // 记录举报
+        await env.DB.prepare(
+          "INSERT INTO comment_reports (comment_id, reporter_ip, reporter_visitor_id, reason) VALUES (?, ?, ?, ?)"
+        ).bind(commentId, ip, visitor_id, reason || '不当内容').run();
+        
+        // 更新评论举报计数
+        const newCount = (comment.report_count || 0) + 1;
+        const isReported = newCount >= 1;
+        
+        // 获取自动隐藏阈值
+        const threshold = await env.DB.prepare("SELECT auto_hide_threshold FROM users WHERE role = 'admin' LIMIT 1").first() as any;
+        const autoHideThreshold = threshold?.auto_hide_threshold || 3;
+        
+        // 检查是否达到自动隐藏阈值
+        let isHidden = comment.is_hidden || 0;
+        let hidden = false;
+        
+        if (newCount >= autoHideThreshold && !isHidden) {
+          isHidden = 1;
+          hidden = true;
+          await env.DB.prepare(
+            "UPDATE comments SET report_count = ?, is_reported = 1, is_hidden = ? WHERE id = ?"
+          ).bind(newCount, isHidden, commentId).run();
+          
+          // 发送邮件通知管理员（需要配置 MAILGUN）
+          const emailEnabled = await env.DB.prepare("SELECT email_notifications_enabled FROM users WHERE role = 'admin' LIMIT 1").first() as any;
+          if (emailEnabled?.email_notifications_enabled && env.MAILGUN_DOMAIN && env.MAILGUN_API_KEY) {
+            // 获取管理员邮箱
+            const adminEmail = await env.DB.prepare("SELECT email FROM users WHERE role = 'admin' LIMIT 1").first() as any;
+            if (adminEmail?.email) {
+              // 构建邮件内容
+              const reportToken = crypto.randomUUID();
+              const deleteUrl = url.origin + "/admin/comments?delete=" + commentId + "&token=" + encodeURIComponent(reportToken);
+              const ignoreUrl = url.origin + "/admin/comments?ignore=" + commentId + "&token=" + encodeURIComponent(reportToken);
+              
+              const emailContent = `
+                <h2>评论被举报通知</h2>
+                <p>页面：<a href="${comment.page_url}">${comment.page_url}</a></p>
+                <p>评论内容：${escapeHtml(comment.content)}</p>
+                <p>举报次数：${newCount}</p>
+                <p>状态：已自动隐藏</p>
+                <hr>
+                <p>
+                  <a href="${deleteUrl}" style="background: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-right: 10px;">删除评论</a>
+                  <a href="${ignoreUrl}" style="background: #e2e8f0; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 6px;">忽略举报</a>
+                </p>
+              `;
+              
+              // 发送邮件（使用 Mailgun）
+              try {
+                await fetch("https://api.mailgun.net/v3/" + env.MAILGUN_DOMAIN + "/messages", {
+                  method: "POST",
+                  headers: {
+                    "Authorization": "Basic " + btoa("api:" + env.MAILGUN_API_KEY),
+                    "Content-Type": "application/x-www-form-urlencoded"
+                  },
+                  body: new URLSearchParams({
+                    from: "ExTalk <noreply@" + env.MAILGUN_DOMAIN + ">",
+                    to: adminEmail.email,
+                    subject: "🚨 评论被举报通知",
+                    html: emailContent
+                  })
+                });
+              } catch (err) {
+                console.error("Failed to send email:", err);
+              }
             }
           }
+        } else {
+          await env.DB.prepare(
+            "UPDATE comments SET report_count = ?, is_reported = ? WHERE id = ?"
+          ).bind(newCount, isReported, commentId).run();
         }
-      } else {
-        await env.DB.prepare(
-          "UPDATE comments SET report_count = ?, is_reported = ? WHERE id = ?"
-        ).bind(newCount, isReported, commentId).run();
+        
+        return new Response(JSON.stringify({ success: true, hidden }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
+      } catch (err) {
+        console.error('Report error:', err);
+        return new Response("Internal Server Error: " + err.message, { status: 500, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
       }
-      
-      return new Response(JSON.stringify({ success: true, hidden }), { headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
     }
 
     // GET /admin/reported-comments (获取被举报的评论)
