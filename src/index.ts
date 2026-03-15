@@ -1677,9 +1677,56 @@ export default {
       const syncData = await syncRes.json().catch(() => ({ sync_interval_minutes: 60 })); // 默认 60 分钟
       
       // 构建设置界面 HTML
-      contentDiv.innerHTML = \`
-        <div style="display: grid; gap: 20px;">
-          <!-- 邮箱同步配置 -->
+      contentDiv.innerHTML = `<div style="display: grid; gap: 20px;">
+          <div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h4 style="margin: 0 0 15px 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d='M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'></path></svg>
+              发起互动
+            </h4>
+            <div style="display: grid; gap: 15px;">
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">活动名称</label>
+                <input type="text" id="activity-title" placeholder="例如：打卡挑战、倒计时活动" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;" />
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">活动描述（可选）</label>
+                <textarea id="activity-description" placeholder="活动的详细说明..." style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; height: 60px; resize: vertical;"></textarea>
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">评论模板 <span style="color: #ef4444;">*</span></label>
+                <textarea id="activity-template" placeholder="例如：我是{nickname}，我支持这个活动！距离{timeto=2026-12-31}还有 X 天" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; height: 100px; resize: vertical;"></textarea>
+                <p style="margin: 8px 0 0 0; font-size: 0.85rem; color: #64748b;">
+                  支持的变量：<code style="background: #f1f5f9; padding: 2px 6px; border-radius: 3px;">{time}</code> 当前时间、
+                  <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 3px;">{nickname}</code> 用户昵称、
+                  <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 3px;">{timeto=YYYY-MM-DD}</code> 距离某天的倒计时
+                </p>
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">标签颜色</label>
+                <input type="color" id="activity-label-color" value="#0070f3" style="width: 100%; height: 40px; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer;" />
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                  <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">开始时间（可选）</label>
+                  <input type="datetime-local" id="activity-start-time" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;" />
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: 8px; color: #64748b; font-size: 0.9rem;">结束时间（可选）</label>
+                  <input type="datetime-local" id="activity-end-time" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;" />
+                </div>
+              </div>
+              <button onclick="window.createActivity()" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600;">发起活动</button>
+            </div>
+          </div>
+          
+          <div id="activity-list-container" style="padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h4 style="margin: 0 0 15px 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+              <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'></path></svg>
+              活动列表
+            </h4>
+            <div id="activity-list" style="text-align: center; padding: 20px; color: #64748b;">加载中...</div>
+          </div>
+          
           <div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
             <h4 style="margin: 0 0 15px 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
               <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
@@ -1765,6 +1812,137 @@ export default {
     } catch (err) {
       alert('网络错误');
     }
+  };
+  
+  // 加载活动列表
+  if (document.getElementById('activity-list')) {
+    setTimeout(() => window.loadActivities(), 100);
+  }
+  
+  // 创建活动
+  window.createActivity = async function() {
+    const title = document.getElementById('activity-title').value.trim();
+    const description = document.getElementById('activity-description').value.trim();
+    const template = document.getElementById('activity-template').value.trim();
+    const labelColor = document.getElementById('activity-label-color').value;
+    const startTime = document.getElementById('activity-start-time').value;
+    const endTime = document.getElementById('activity-end-time').value;
+    
+    if (!title || !template) {
+      alert('请填写活动名称和评论模板');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_ENDPOINT}/admin/activities`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentUser.token}`
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          template,
+          label_color: labelColor,
+          start_time: startTime,
+          end_time: endTime
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        alert('活动创建成功！');
+        // 清空表单
+        document.getElementById('activity-title').value = '';
+        document.getElementById('activity-description').value = '';
+        document.getElementById('activity-template').value = '';
+        document.getElementById('activity-label-color').value = '#0070f3';
+        document.getElementById('activity-start-time').value = '';
+        document.getElementById('activity-end-time').value = '';
+        // 重新加载活动列表
+        window.loadActivities();
+      } else {
+        alert('创建失败：' + (data.error || '未知错误'));
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  // 加载活动列表
+  window.loadActivities = async function() {
+    const listDiv = document.getElementById('activity-list');
+    
+    try {
+      const res = await fetch(`${API_ENDPOINT}/admin/activities`, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`
+        }
+      });
+      
+      if (!res.ok) {
+        listDiv.innerHTML = '<div style="color: #ef4444;">加载失败</div>';
+        return;
+      }
+      
+      const data = await res.json();
+      const activities = data.activities || [];
+      
+      if (activities.length === 0) {
+        listDiv.innerHTML = '<div style="color: #64748b;">暂无活动</div>';
+        return;
+      }
+      
+      listDiv.innerHTML = activities.map(a => `
+        <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 15px; background: #f8fafc;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; background: ${a.label_color}; color: white;">${a.title}</span>
+              <span style="font-size: 0.85rem; color: #64748b;">${a.participant_count || 0} 人参与</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button onclick="window.editActivity(${a.id})" style="padding: 4px 12px; background: #0070f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">编辑</button>
+              <button onclick="window.deleteActivity(${a.id})" style="padding: 4px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">删除</button>
+            </div>
+          </div>
+          ${a.description ? `<p style="color: #64748b; font-size: 0.9rem; margin: 8px 0;">${a.description}</p>` : ''}
+          <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 8px;">
+            模板：${a.template.substring(0, 50)}${a.template.length > 50 ? '...' : ''}
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      listDiv.innerHTML = '<div style="color: #ef4444;">加载失败</div>';
+    }
+  };
+  
+  // 删除活动
+  window.deleteActivity = async function(id) {
+    if (!confirm('确定删除这个活动吗？')) return;
+    
+    try {
+      const res = await fetch(`${API_ENDPOINT}/admin/activities/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`
+        }
+      });
+      
+      if (res.ok) {
+        alert('活动已删除');
+        window.loadActivities();
+      } else {
+        alert('删除失败');
+      }
+    } catch (err) {
+      alert('网络错误');
+    }
+  };
+  
+  // 编辑活动（简化版：先删除再创建）
+  window.editActivity = async function(id) {
+    alert('编辑功能开发中... 请先删除后重新创建');
   };
   
   window.saveHeatSettings = async function() {
