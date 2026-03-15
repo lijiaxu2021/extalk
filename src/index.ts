@@ -2143,31 +2143,65 @@ export default {
   
   // 举报评论功能
   window.reportComment = async function(id, btn) {
-    // 弹出 hCaptcha 验证窗口
+    // 检查 hCaptcha 是否已加载
     if (typeof hcaptcha === 'undefined') {
       return alert('验证码加载失败，请刷新页面重试');
     }
     
+    // 立即更新按钮状态，给用户反馈
+    const originalText = btn.innerText;
+    const originalColor = btn.style.color;
+    btn.disabled = true;
+    btn.innerText = '加载验证...';
+    btn.style.color = '#64748b';
+    
     try {
-      // 使用 hCaptcha 的 invisible 模式或显式弹窗
+      // 复用评论表单的 hCaptcha widget
+      // 先重置之前的验证（如果有）
+      if (hcaptchaWidgetId !== null) {
+        hcaptcha.reset(hcaptchaWidgetId);
+      }
+      
+      // 等待用户完成验证
       const captchaToken = await new Promise((resolve, reject) => {
-        // 创建一个临时的 hCaptcha 验证（使用 invisible 模式）
-        const captchaId = hcaptcha.render({
-          sitekey: HCAPTCHA_SITE_KEY,
-          callback: resolve,
-          'expired-callback': () => reject(new Error('验证码已过期')),
-          'error-callback': () => reject(new Error('验证码加载失败')),
-          size: 'invisible' // 使用隐形模式，自动弹出验证窗口
-        });
+        // 设置一个超时，防止用户一直不验证
+        const timeout = setTimeout(() => {
+          reject(new Error('验证超时'));
+        }, 60000); // 60 秒超时
         
-        // 触发验证
-        hcaptcha.execute(captchaId);
+        // 监听验证完成
+        const checkInterval = setInterval(() => {
+          try {
+            const token = hcaptcha.getResponse(hcaptchaWidgetId);
+            if (token) {
+              clearTimeout(timeout);
+              clearInterval(checkInterval);
+              resolve(token);
+            }
+          } catch (e) {
+            // 验证还未完成，继续等待
+          }
+        }, 500);
+        
+        // 提示用户进行验证
+        setTimeout(() => {
+          alert('请在评论框下方完成人机验证，然后继续举报');
+          // 滚动到验证框
+          const captchaContainer = document.getElementById('hcaptcha-container');
+          if (captchaContainer) {
+            captchaContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 高亮显示
+            captchaContainer.style.transition = 'all 0.3s';
+            captchaContainer.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+              captchaContainer.style.transform = 'scale(1)';
+            }, 300);
+          }
+        }, 100);
       });
       
       // 验证成功，继续举报
-      btn.disabled = true;
       btn.innerText = '处理中...';
-      btn.style.color = '#64748b';
       
       const visitorId = localStorage.getItem('extalk_visitor_id');
       const res = await fetch(API_ENDPOINT + '/comments/' + id + '/report', {
@@ -2195,18 +2229,20 @@ export default {
         const error = await res.text();
         alert('举报失败：' + error);
         btn.disabled = false;
-        btn.innerText = '举报';
-        btn.style.color = '#64748b';
+        btn.innerText = originalText;
+        btn.style.color = originalColor;
       }
       
       // 重置 hCaptcha
-      hcaptcha.reset();
+      if (hcaptchaWidgetId !== null) {
+        hcaptcha.reset(hcaptchaWidgetId);
+      }
     } catch (err) {
       console.error('举报失败:', err);
       alert('验证失败或网络错误，请稍后重试');
       btn.disabled = false;
-      btn.innerText = '举报';
-      btn.style.color = '#64748b';
+      btn.innerText = originalText;
+      btn.style.color = originalColor;
     }
   };
 
